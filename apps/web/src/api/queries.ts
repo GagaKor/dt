@@ -10,6 +10,7 @@ import type {
   Kpi,
   Severity,
   Site,
+  StatsResponse,
 } from '@dt/shared';
 import { realtimeNow, useRealtimeStore } from '../realtime/store';
 import { apiFetch } from './client';
@@ -167,5 +168,33 @@ export function useAlarmsAck() {
       useRealtimeStore.getState().apply({ type: 'alarm', alarm, created: false }, realtimeNow());
       void qc.invalidateQueries({ queryKey: kpiKey(alarm.siteId) });
     },
+  });
+}
+
+export interface StatsParams {
+  siteId: string | undefined;
+  from: string;
+  to: string;
+  bucket: 'hour' | 'day';
+  tz: string;
+}
+
+export function useStats(p: StatsParams) {
+  return useQuery({
+    queryKey: ['stats', p.siteId, p.from, p.to, p.bucket, p.tz],
+    queryFn: () => {
+      const q = new URLSearchParams({
+        siteId: p.siteId!,
+        from: p.from,
+        to: p.to,
+        bucket: p.bucket,
+        tz: p.tz,
+      });
+      return apiFetch<StatsResponse>(`/api/stats?${q}`);
+    },
+    enabled: !!p.siteId,
+    retry: false,
+    // Keep the previous charts on screen while a new range or a refresh loads.
+    placeholderData: (prev) => prev,
   });
 }

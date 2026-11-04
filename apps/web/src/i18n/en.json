@@ -188,5 +188,35 @@
   "toast": {
     "newAlarm": "New {{severity}} alarm",
     "dismiss": "Dismiss"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "presets": {
+      "today": "Today",
+      "7d": "Last 7 days",
+      "30d": "Last 30 days",
+      "custom": "Custom"
+    },
+    "from": "From",
+    "to": "To",
+    "apply": "Apply",
+    "refresh": "Refresh",
+    "total": "Events in range",
+    "unacked": "Unacknowledged alarms",
+    "timeseries": "Events over time",
+    "byType": "By event type",
+    "bySeverity": "By severity",
+    "byDevice": "Top 10 devices",
+    "byFloor": "By floor",
+    "empty": "No events in this range.",
+    "deviceDeleted": "{{id}} (deleted)",
+    "unknownFloor": "Unknown floor",
+    "count": "Events",
+    "loadError": "Could not load statistics.",
+    "error": {
+      "range_too_long": "The range is too long for this resolution. Choose a shorter range.",
+      "invalid_tz": "The time zone is not supported.",
+      "invalid_range": "The range is invalid. The start must be before the end."
+    }
   }
 }

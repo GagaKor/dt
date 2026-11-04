@@ -5,13 +5,16 @@ import { useSites } from './api/queries';
 import { AppShell } from './components/AppShell';
 import { RequireAuth } from './components/RequireAuth';
 import { LoginPage } from './pages/LoginPage';
-import { DashboardPage } from './pages/Placeholders';
 import { KeysPage } from './pages/settings/KeysPage';
 import { SitesPage } from './pages/settings/SitesPage';
 import { RealtimeProvider } from './realtime/RealtimeProvider';
 
 const MonitorPage = lazy(() =>
   import('./pages/MonitorPage').then((m) => ({ default: m.MonitorPage })),
+);
+
+const DashboardPage = lazy(() =>
+  import('./pages/DashboardPage').then((m) => ({ default: m.DashboardPage })),
 );
 
 const SiteDetailPage = lazy(() =>
@@ -61,7 +64,14 @@ export function App() {
             </Suspense>
           }
         />
-        <Route path="/sites/:siteId/dashboard" element={<DashboardPage />} />
+        <Route
+          path="/sites/:siteId/dashboard"
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <DashboardPage />
+            </Suspense>
+          }
+        />
         <Route path="/settings/sites" element={<SitesPage />} />
         <Route
           path="/settings/sites/:siteId"
