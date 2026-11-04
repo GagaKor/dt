@@ -86,6 +86,76 @@ docker compose up -d
 
 마이그레이션은 앱이 시작할 때 자동으로 적용된다. 업데이트 전에 백업을 받아 둔다(5장).
 
+### 빌드된 이미지 쓰기
+
+`main`에 변경이 들어가 CI가 통과하면 `Release` 워크플로가 amd64·arm64 이미지를 만들어 GHCR(`ghcr.io/gagakor/dt`)에 `latest`와 `sha-<커밋 7자리>` 태그로 올린다. 서버에서 직접 빌드하지 않고 이 이미지를 쓰려면 `.env`에 이미지를 지정한다.
+
+```bash
+# .env
+DT_IMAGE=ghcr.io/gagakor/dt:latest
+```
+
+```bash
+docker compose pull app
+docker compose up -d --no-build
+```
+
+`DT_IMAGE`가 없으면 지금처럼 로컬에서 빌드한 `dt:local`을 쓴다. 패키지가 비공개면 먼저 `docker login ghcr.io`가 필요하다.
+
+### 자동 배포 (선택)
+
+`Release` 워크플로의 `deploy` 작업은 이미지를 올린 뒤 SSH로 서버에 접속해 그 이미지로 교체한다. `latest` 태그와 배포는 **그 커밋이 아직 `main`의 최신일 때만** 진행한다. 늦게 끝난 이전 커밋의 실행이 운영을 옛 버전으로 되돌리지 않게 하기 위해서다.
+
+서버에서는 `scripts/deploy/remote-deploy.sh`가 다음을 한다.
+
+1. 체크아웃을 배포할 커밋으로 정확히 맞춘다. 그 커밋이 `origin/main`에 없으면 거부한다. `.env`와 `docker-compose.override.yml` 같은 추적되지 않는 파일은 그대로 둔다.
+2. 지금 실행 중인 이미지를 `dt:rollback`으로 태그해 둔다. 그다음 `.env`의 `DT_IMAGE`를 새 태그로 바꾸고 이미지를 받는다.
+3. 마이그레이션 전에 DB를 `backups/pre-deploy-*.dump`로 백업한다. 최근 5개만 남긴다.
+4. 앱을 재시작하고 health check가 통과할 때까지 최대 120초 기다린다.
+5. 통과하지 못하면 이전 체크아웃과 이미지(`dt:rollback`)로 되돌리고 실패로 끝난다. Actions 화면에 실패로 보인다. 앱 로그는 공개 Actions 로그가 아니라 서버의 `deploy-logs/failed-*.log`에만 남긴다. 실행 기록은 `deploy-logs/deploy.log`에 쌓인다.
+
+이미지 롤백은 DB 스키마를 되돌리지 않는다. 새 버전의 마이그레이션 때문에 이전 버전이 동작하지 않으면 3단계의 백업으로 복원한다.
+
+설정 순서:
+
+1. 배포 전용 키를 만든다. 평소 쓰는 키를 재사용하지 않는다.
+
+   ```bash
+   ssh-keygen -t ed25519 -N '' -C dt-deploy -f dt_deploy
+   ```
+
+2. 서버의 `~/.ssh/authorized_keys`에 공개키를 **강제 명령**으로 등록한다. 이 키로는 배포 스크립트만 실행되고 셸을 열 수 없다.
+
+   ```text
+   restrict,command="/home/<user>/dt/scripts/deploy/remote-deploy.sh" ssh-ed25519 AAAA... dt-deploy
+   ```
+
+   서버 준비 조건:
+   - 서버 계정이 `docker` 그룹에 속해 있다.
+   - 레포가 `~/dt`에 **HTTPS 주소로** 클론되어 있다. 강제 명령 세션에는 SSH 에이전트가 없다.
+   - `.env`가 준비되어 있고, 추적되는 파일은 수정하지 않은 상태다.
+   - 경로가 다르면 명령 앞에 `DT_DIR=/경로`를 붙인다.
+
+   스크립트 파일은 레포 안에 있으므로, 첫 배포 전에 서버 체크아웃에 이 스크립트가 들어 있어야 한다(`git -C ~/dt pull`). 이후 배포부터는 스크립트가 체크아웃을 직접 맞춘다.
+
+3. GitHub 레포 설정 → Environments에 `production` 환경을 만들고, 배포 브랜치를 `main`으로 제한한다. 비밀값은 이 환경에 넣는다. 그러면 다른 브랜치의 워크플로는 배포 키를 읽을 수 없다. 레포 코드에는 이름만 들어간다.
+
+   | 위치 | 이름 | 값 |
+   |---|---|---|
+   | `production` 환경 Secret | `DEPLOY_HOST` | 서버 주소 |
+   | `production` 환경 Secret | `DEPLOY_USER` | 서버 계정 |
+   | `production` 환경 Secret | `DEPLOY_SSH_KEY` | 1에서 만든 개인키 |
+   | `production` 환경 Secret | `DEPLOY_KNOWN_HOSTS` | 서버 호스트 키 한 줄 (`<주소> ssh-ed25519 AAAA...`) |
+   | 레포 Variable | `DEPLOY_ENABLED` | `true` |
+
+`DEPLOY_ENABLED`가 없으면 `deploy` 작업은 건너뛰고 이미지만 올린다.
+
+레지스트리 로그인은 서버에 남지 않는다. 그 작업의 `GITHUB_TOKEN`을 SSH 표준 입력으로 넘기고, 이번 실행에서만 쓰는 임시 설정으로 로그인한 뒤 지운다. 그래서 패키지가 비공개여도 동작한다.
+
+`main`의 최신 커밋을 다시 배포하려면 Actions에서 `Release`를 `main` 기준으로 수동 실행(`workflow_dispatch`)한다.
+
+배포 스크립트는 `main`에 있는 내용을 그대로 실행한다. `main`에 push할 수 있는 사람이 곧 서버에 배포할 수 있는 사람이므로, `main`에 브랜치 보호(PR 필수, force-push 금지)를 거는 것을 권장한다.
+
 ### 앞단 프록시와 HTTPS
 
 dt는 HTTP만 낸다. HTTPS가 필요하면 앞에 리버스 프록시(nginx, Caddy 등)를 둔다. 실시간 화면이 WebSocket(`/api/ws`)을 쓰므로 프록시가 `Upgrade` 헤더를 전달해야 한다. 서버가 25초마다 ping을 보내므로 프록시의 유휴 시간 제한(nginx `proxy_read_timeout` 기본 60초)은 그대로 둬도 된다. 화면은 60초 동안 아무 메시지도 받지 못하면 연결이 끊긴 것으로 보고 다시 연결한다. 모델 업로드가 크므로 프록시의 요청 본문 한도도 `MAX_MODEL_MB` 이상으로 올린다.

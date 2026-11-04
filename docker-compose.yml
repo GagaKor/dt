@@ -1,7 +1,8 @@
 services:
   app:
     build: .
-    image: dt:local
+    # Set DT_IMAGE (e.g. ghcr.io/gagakor/dt:latest) to run a published image instead of building locally.
+    image: ${DT_IMAGE:-dt:local}
     env_file: .env
     environment:
       # PORT in .env picks the host port below; inside the container the app always uses 8080.
