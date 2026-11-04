@@ -120,6 +120,13 @@ describe('sites', () => {
     expect(res.json().code).toBe('not_glb');
   });
 
+  test('model upload is not capped by the 1 MiB JSON body limit', async () => {
+    const site = await createSite();
+    const res = await upload(site.id, Buffer.alloc(2 * 1024 * 1024, 1));
+    expect(res.statusCode).toBe(422);
+    expect(res.json().code).toBe('not_glb');
+  });
+
   test('upload over MAX_MODEL_MB → 413', async () => {
     await t.close();
     t = await createTestApp({ config: { MAX_MODEL_MB: 1 } as never });

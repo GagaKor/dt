@@ -49,10 +49,8 @@ declare module 'fastify' {
 }
 
 export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
-  const app = Fastify({
-    logger: { level: deps.config.LOG_LEVEL },
-    bodyLimit: deps.config.MAX_MODEL_MB * 1024 * 1024,
-  });
+  // Default 1 MiB body limit: model uploads are multipart, capped by the multipart fileSize.
+  const app = Fastify({ logger: { level: deps.config.LOG_LEVEL } });
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
 

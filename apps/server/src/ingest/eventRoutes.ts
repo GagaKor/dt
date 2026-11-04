@@ -14,7 +14,7 @@ export async function registerEventRoutes(app: FastifyInstance, service: EventSe
   app.withTypeProvider<ZodTypeProvider>().post(
     '/api/ingest/events',
     {
-      preHandler: app.requireIntegrationKey,
+      onRequest: app.requireIntegrationKey,
       schema: { body: EventMessageSchema, response: { 200: ResultSchema, 201: ResultSchema } },
     },
     async (req, reply) => {

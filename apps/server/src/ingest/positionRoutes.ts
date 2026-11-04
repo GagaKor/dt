@@ -10,7 +10,7 @@ export async function registerPositionRoutes(app: FastifyInstance, clock: () => 
     '/api/ingest/positions',
     {
       bodyLimit: 1024 * 1024,
-      preHandler: app.requireIntegrationKey,
+      onRequest: app.requireIntegrationKey,
       schema: { body: PositionBatchSchema, response: { 202: z.object({ accepted: z.number() }) } },
     },
     async (req, reply) => {

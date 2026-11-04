@@ -25,11 +25,11 @@ export async function registerAlarmRoutes(
 ): Promise<void> {
   const { db } = deps;
   const typed = app.withTypeProvider<ZodTypeProvider>();
-  const preHandler = app.requireAdmin;
+  const onRequest = app.requireAdmin;
 
   typed.get(
     '/api/alarms',
-    { preHandler, schema: { querystring: ListQuery, response: { 200: z.array(AlarmSchema) } } },
+    { onRequest, schema: { querystring: ListQuery, response: { 200: z.array(AlarmSchema) } } },
     async (req): Promise<Alarm[]> => {
       const q = req.query;
       const conds: SQL[] = [eq(alarms.siteId, q.siteId)];
@@ -42,7 +42,7 @@ export async function registerAlarmRoutes(
 
   typed.post(
     '/api/alarms/:id/ack',
-    { preHandler, schema: { params: idParams, body: AckBody, response: { 200: AlarmSchema } } },
+    { onRequest, schema: { params: idParams, body: AckBody, response: { 200: AlarmSchema } } },
     async (req): Promise<Alarm> => {
       const { id } = req.params;
       const [row] = await db.select().from(alarms).where(eq(alarms.id, id));

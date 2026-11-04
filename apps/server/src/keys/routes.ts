@@ -5,7 +5,7 @@ import {
   type IntegrationKey,
 } from '@dt/shared';
 import { asc, eq } from 'drizzle-orm';
-import type { FastifyInstance, preHandlerAsyncHookHandler } from 'fastify';
+import type { FastifyInstance, onRequestAsyncHookHandler } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import type { AppDeps } from '../app.js';
@@ -21,7 +21,7 @@ import {
 declare module 'fastify' {
   interface FastifyInstance {
     keyAuth: KeyAuthenticator;
-    requireIntegrationKey: preHandlerAsyncHookHandler;
+    requireIntegrationKey: onRequestAsyncHookHandler;
   }
   interface FastifyRequest {
     integrationKey?: IntegrationKeyRecord;
@@ -58,10 +58,10 @@ export async function registerKeyRoutes(
 ): Promise<void> {
   const { db } = deps;
   const typed = app.withTypeProvider<ZodTypeProvider>();
-  const preHandler = app.requireAdmin;
+  const onRequest = app.requireAdmin;
 
   app.decorate('keyAuth', keyAuth);
-  const requireIntegrationKey: preHandlerAsyncHookHandler = async (req) => {
+  const requireIntegrationKey: onRequestAsyncHookHandler = async (req) => {
     if (!parseBearer(req.headers.authorization))
       throw new HttpError(401, 'missing_key', 'Bearer integration key required');
     const record = await keyAuth.authenticate(req.headers.authorization);
@@ -72,7 +72,7 @@ export async function registerKeyRoutes(
 
   typed.get(
     '/api/integration-keys',
-    { preHandler, schema: { response: { 200: z.array(IntegrationKeySchema) } } },
+    { onRequest, schema: { response: { 200: z.array(IntegrationKeySchema) } } },
     async () => {
       const rows = await db
         .select()
@@ -84,7 +84,7 @@ export async function registerKeyRoutes(
 
   typed.post(
     '/api/integration-keys',
-    { preHandler, schema: { body: CreateBody, response: { 201: CreatedIntegrationKeySchema } } },
+    { onRequest, schema: { body: CreateBody, response: { 201: CreatedIntegrationKeySchema } } },
     async (req, reply) => {
       const k = generateKey();
       const [row] = await db
@@ -104,7 +104,7 @@ export async function registerKeyRoutes(
   typed.patch(
     '/api/integration-keys/:id',
     {
-      preHandler,
+      onRequest,
       schema: { params: idParams, body: PatchBody, response: { 200: IntegrationKeySchema } },
     },
     async (req) => {
@@ -129,7 +129,7 @@ export async function registerKeyRoutes(
 
   typed.delete(
     '/api/integration-keys/:id',
-    { preHandler, schema: { params: idParams, response: { 204: z.null() } } },
+    { onRequest, schema: { params: idParams, response: { 204: z.null() } } },
     async (req, reply) => {
       const [cur] = await db
         .select()

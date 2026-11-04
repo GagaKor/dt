@@ -7,7 +7,7 @@ let cookie: string;
 beforeEach(async () => {
   t = await createTestApp({
     beforeReady: (app) => {
-      app.get('/test/whoami', { preHandler: app.requireIntegrationKey }, async (req) => ({
+      app.get('/test/whoami', { onRequest: app.requireIntegrationKey }, async (req) => ({
         name: req.integrationKey?.name,
         defaultSeverity: req.integrationKey?.defaultSeverity,
       }));

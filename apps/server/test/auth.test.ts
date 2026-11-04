@@ -84,6 +84,23 @@ describe('admin auth', () => {
     expect(c?.maxAge === 0 || (c?.expires && c.expires.getTime() < Date.now())).toBe(true);
   });
 
+  describe('before body parsing', () => {
+    it('login with a ~2 MiB JSON body -> 413', async () => {
+      const res = await login('x'.repeat(2 * 1024 * 1024));
+      expect(res.statusCode).toBe(413);
+    });
+
+    it('admin route without cookie and with an invalid body -> 401, not 400', async () => {
+      const res = await t.app.inject({
+        method: 'POST',
+        url: '/api/sites',
+        payload: { name: 42 },
+      });
+      expect(res.statusCode).toBe(401);
+      expect(res.json().code).toBe('unauthenticated');
+    });
+  });
+
   describe('cookie helpers', () => {
     const secret = 'test-session-secret-0123456789abcdef';
     const sign = (v: string, sec = secret) => cookie.sign(v, sec);

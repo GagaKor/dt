@@ -69,12 +69,12 @@ export async function registerDeviceRoutes(
 ): Promise<void> {
   const { db } = deps;
   const typed = app.withTypeProvider<ZodTypeProvider>();
-  const preHandler = app.requireAdmin;
+  const onRequest = app.requireAdmin;
 
   typed.get(
     '/api/sites/:siteId/devices',
     {
-      preHandler,
+      onRequest,
       schema: { params: siteParams, response: { 200: z.array(DeviceSchema) } },
     },
     async (req) => {
@@ -89,7 +89,7 @@ export async function registerDeviceRoutes(
 
   typed.post(
     '/api/devices',
-    { preHandler, schema: { body: CreateBody, response: { 201: DeviceSchema } } },
+    { onRequest, schema: { body: CreateBody, response: { 201: DeviceSchema } } },
     async (req, reply) => {
       const b = req.body;
       const [existing] = await db
@@ -132,7 +132,7 @@ export async function registerDeviceRoutes(
   typed.patch(
     '/api/devices/:deviceId',
     {
-      preHandler,
+      onRequest,
       schema: { params: idParams, body: PatchBody, response: { 200: DeviceSchema } },
     },
     async (req) => {
@@ -168,7 +168,7 @@ export async function registerDeviceRoutes(
 
   typed.delete(
     '/api/devices/:deviceId',
-    { preHandler, schema: { params: idParams, response: { 204: z.null() } } },
+    { onRequest, schema: { params: idParams, response: { 204: z.null() } } },
     async (req, reply) => {
       const [row] = await db.delete(devices).where(eq(devices.id, req.params.deviceId)).returning();
       directory.invalidate();

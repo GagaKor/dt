@@ -66,6 +66,17 @@ describe('POST /api/ingest/events', () => {
     expect((await post(evt(), null)).statusCode).toBe(401);
   });
 
+  test('no key with an invalid body -> 401 missing_key, not 400', async () => {
+    const res = await post({ deviceId: 42 }, null);
+    expect(res.statusCode).toBe(401);
+    expect(res.json().code).toBe('missing_key');
+  });
+
+  test('body over 1 MiB -> 413', async () => {
+    const res = await post(evt({ eventType: 'x'.repeat(2 * 1024 * 1024) }));
+    expect(res.statusCode).toBe(413);
+  });
+
   test('revoked key -> 401', async () => {
     await admin('DELETE', `/api/integration-keys/${keyId}`);
     expect((await post(evt())).statusCode).toBe(401);

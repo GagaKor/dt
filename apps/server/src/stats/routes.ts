@@ -22,11 +22,11 @@ function assertTz(tz: string): void {
 export async function registerStatsRoutes(app: FastifyInstance, deps: AppDeps): Promise<void> {
   const { db } = deps;
   const typed = app.withTypeProvider<ZodTypeProvider>();
-  const preHandler = app.requireAdmin;
+  const onRequest = app.requireAdmin;
 
   typed.get(
     '/api/stats',
-    { preHandler, schema: { querystring: StatsQuerySchema } },
+    { onRequest, schema: { querystring: StatsQuerySchema } },
     async (req): Promise<StatsResponse> => {
       const q = req.query;
       assertTz(q.tz);
@@ -41,7 +41,7 @@ export async function registerStatsRoutes(app: FastifyInstance, deps: AppDeps): 
 
   typed.get(
     '/api/stats/kpi',
-    { preHandler, schema: { querystring: KpiQuery } },
+    { onRequest, schema: { querystring: KpiQuery } },
     async (req): Promise<Kpi> => {
       assertTz(req.query.tz);
       return getKpi(db, { siteId: req.query.siteId, tz: req.query.tz, now: deps.clock() });

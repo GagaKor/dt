@@ -33,11 +33,11 @@ export async function registerSiteRoutes(
   await app.register(multipart, { limits: { fileSize: maxBytes, files: 1 } });
 
   const typed = app.withTypeProvider<ZodTypeProvider>();
-  const preHandler = app.requireAdmin;
+  const onRequest = app.requireAdmin;
 
   typed.get(
     '/api/sites',
-    { preHandler, schema: { response: { 200: z.array(SiteSchema) } } },
+    { onRequest, schema: { response: { 200: z.array(SiteSchema) } } },
     async () => {
       const rows = await db.select().from(sites).orderBy(sites.createdAt);
       return rows.map(toSite);
@@ -47,7 +47,7 @@ export async function registerSiteRoutes(
   typed.post(
     '/api/sites',
     {
-      preHandler,
+      onRequest,
       schema: {
         body: z.object({ name: z.string().trim().min(1).max(200) }),
         response: { 201: SiteSchema },
@@ -62,7 +62,7 @@ export async function registerSiteRoutes(
   typed.patch(
     '/api/sites/:siteId',
     {
-      preHandler,
+      onRequest,
       schema: {
         params,
         body: z.object({ name: z.string().trim().min(1).max(200) }),
@@ -82,7 +82,7 @@ export async function registerSiteRoutes(
 
   typed.delete(
     '/api/sites/:siteId',
-    { preHandler, schema: { params, response: { 204: z.null() } } },
+    { onRequest, schema: { params, response: { 204: z.null() } } },
     async (req, reply) => {
       await mutex.run(`site:${req.params.siteId}`, async () => {
         const [row] = await db.delete(sites).where(eq(sites.id, req.params.siteId)).returning();
@@ -102,7 +102,7 @@ export async function registerSiteRoutes(
 
   typed.put(
     '/api/sites/:siteId/model',
-    { preHandler, schema: { params, response: { 200: ModelUploadResultSchema } } },
+    { onRequest, schema: { params, response: { 200: ModelUploadResultSchema } } },
     async (req) => {
       const { siteId } = req.params;
       await getSiteRow(db, siteId);
@@ -160,7 +160,7 @@ export async function registerSiteRoutes(
   typed.get(
     '/api/sites/:siteId/model',
     {
-      preHandler,
+      onRequest,
       schema: { params, querystring: z.object({ v: z.coerce.number().int().optional() }) },
     },
     async (req, reply) => {
@@ -180,7 +180,7 @@ export async function registerSiteRoutes(
 
   typed.get(
     '/api/sites/:siteId/floors',
-    { preHandler, schema: { params, response: { 200: z.array(FloorSchema) } } },
+    { onRequest, schema: { params, response: { 200: z.array(FloorSchema) } } },
     async (req) => {
       await getSiteRow(db, req.params.siteId);
       return listFloors(db, req.params.siteId);
@@ -190,7 +190,7 @@ export async function registerSiteRoutes(
   typed.put(
     '/api/sites/:siteId/floors',
     {
-      preHandler,
+      onRequest,
       schema: { params, body: z.array(FloorInputSchema), response: { 200: z.array(FloorSchema) } },
     },
     async (req) => {

@@ -1,7 +1,7 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
 import cookie from '@fastify/cookie';
 import { parseCookie } from 'cookie';
-import type { FastifyInstance, preHandlerAsyncHookHandler } from 'fastify';
+import type { FastifyInstance, onRequestAsyncHookHandler } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import type { AppDeps } from '../app.js';
@@ -12,7 +12,7 @@ export const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 
 declare module 'fastify' {
   interface FastifyInstance {
-    requireAdmin: preHandlerAsyncHookHandler;
+    requireAdmin: onRequestAsyncHookHandler;
   }
   interface FastifyRequest {
     adminUser?: string;
@@ -59,7 +59,7 @@ export async function registerAuth(app: FastifyInstance, deps: AppDeps): Promise
   const { config, clock } = deps;
   await app.register(cookie);
 
-  const requireAdmin: preHandlerAsyncHookHandler = async (req) => {
+  const requireAdmin: onRequestAsyncHookHandler = async (req) => {
     const session = verifySessionCookie(
       req.cookies[SESSION_COOKIE],
       config.SESSION_SECRET,
@@ -113,7 +113,7 @@ export async function registerAuth(app: FastifyInstance, deps: AppDeps): Promise
   typed.get(
     '/api/auth/me',
     {
-      preHandler: requireAdmin,
+      onRequest: requireAdmin,
       schema: { response: { 200: z.object({ username: z.string() }) } },
     },
     async (req) => ({ username: req.adminUser as string }),
