@@ -10,4 +10,3 @@ playwright-report
 .deploy.lock
 deploy-logs/
 backups/
-docker-compose.override.yml

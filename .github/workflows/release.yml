@@ -17,7 +17,7 @@ permissions:
 # Runs that will be skipped (failed CI, pull-request CI) get their own group so they
 # can never cancel a real release that is waiting.
 concurrency:
-  group: ${{ (github.event_name == 'workflow_dispatch' || (github.event.workflow_run.event == 'push' && github.event.workflow_run.conclusion == 'success')) && 'release' || format('release-noop-{0}', github.run_id) }}
+  group: ${{ ((github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') || (github.event.workflow_run.event == 'push' && github.event.workflow_run.conclusion == 'success')) && 'release' || format('release-noop-{0}', github.run_id) }}
   cancel-in-progress: false
 
 env:
@@ -107,9 +107,12 @@ jobs:
           tag="sha-${HEAD_SHA::7}"
           tags=(-t "$IMAGE:$tag")
           current=false
-          if [[ $(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha) == "$HEAD_SHA" ]]; then
+          main_sha=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)
+          if [[ $main_sha == "$HEAD_SHA" ]]; then
             tags+=(-t "$IMAGE:latest")
             current=true
+          else
+            echo "::notice::$HEAD_SHA is no longer the tip of main ($main_sha); publishing $tag only, no latest and no deploy"
           fi
           refs=()
           for digest in *; do refs+=("$IMAGE@sha256:$digest"); done

@@ -13,6 +13,7 @@
 # If the new image is not healthy, the previous checkout and image are restored, the
 # app logs are saved on the server (never printed to CI), and the script exits non-zero.
 set -euo pipefail
+umask 077
 
 DT_DIR=${DT_DIR:-$HOME/dt}
 DT_IMAGE_REPO=${DT_IMAGE_REPO:-ghcr.io/gagakor/dt}
@@ -52,6 +53,10 @@ restore_files() {
 }
 
 backup_db() {
+  if [[ -z $(docker compose ps -q db 2>/dev/null) ]]; then
+    echo "database container is not running; skipping the pre-deploy backup"
+    return 0
+  fi
   mkdir -p backups
   local file
   file="backups/pre-deploy-$(date +%Y%m%dT%H%M%S).dump"
@@ -96,6 +101,9 @@ main() {
   cd "$DT_DIR"
   [[ -f .env ]] || fail "missing $DT_DIR/.env"
   mkdir -p deploy-logs
+  if [[ -f deploy-logs/deploy.log && $(stat -c %s deploy-logs/deploy.log) -gt 1048576 ]]; then
+    mv deploy-logs/deploy.log deploy-logs/deploy.log.1
+  fi
   # Keep going if the CI connection drops, and keep a server-side log of every run.
   trap '' HUP PIPE
   exec > >(tee -a --output-error=warn-nopipe deploy-logs/deploy.log) 2>&1
@@ -117,13 +125,23 @@ main() {
   local commit
   commit=$(git rev-parse --verify --quiet "${sha}^{commit}") || fail "unknown commit $sha"
   git merge-base --is-ancestor "$commit" origin/main || fail "$sha is not on main"
+  # Older commits have neither this script nor DT_IMAGE support in docker-compose.yml.
+  git cat-file -e "$commit:scripts/deploy/remote-deploy.sh" 2>/dev/null ||
+    fail "$sha predates automated deploys"
+  # The operator's local override (e.g. a localhost-only port) must never be replaced.
+  if git cat-file -e "$commit:docker-compose.override.yml" 2>/dev/null; then
+    fail "$sha tracks docker-compose.override.yml; refusing to overwrite the local override"
+  fi
 
   PREV_HEAD=$(git rev-parse HEAD)
   PREV_IMAGE=$(sed -n 's/^DT_IMAGE=//p' .env | tail -n 1)
   local running
-  running=$(docker compose ps -q app 2>/dev/null | head -n 1)
+  running=$(docker compose ps -a -q app 2>/dev/null | head -n 1)
   if [[ -n $running ]]; then
     docker tag "$(docker inspect --format '{{.Image}}' "$running")" dt:rollback
+  else
+    # Never roll back to an image from an unrelated, older deploy.
+    docker image rm dt:rollback >/dev/null 2>&1 || true
   fi
 
   git checkout --quiet -B main "$commit"
