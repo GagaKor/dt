@@ -5,6 +5,7 @@ import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import type { AppDeps } from '../app.js';
+import type { DeviceDirectory } from '../devices/directory.js';
 import type { KeyedMutex } from '../lib/keyedMutex.js';
 import { sites } from '../db/schema.js';
 import { HttpError } from '../errors.js';
@@ -25,6 +26,7 @@ export async function registerSiteRoutes(
   app: FastifyInstance,
   deps: AppDeps,
   mutex: KeyedMutex,
+  directory: DeviceDirectory,
 ): Promise<void> {
   const { db, storage, config } = deps;
   const maxBytes = config.MAX_MODEL_MB * 1024 * 1024;
@@ -84,6 +86,7 @@ export async function registerSiteRoutes(
     async (req, reply) => {
       await mutex.run(`site:${req.params.siteId}`, async () => {
         const [row] = await db.delete(sites).where(eq(sites.id, req.params.siteId)).returning();
+        directory.invalidate();
         if (!row) throw new HttpError(404, 'site_not_found', 'Site not found');
         if (row.modelKey) {
           try {
@@ -192,7 +195,11 @@ export async function registerSiteRoutes(
     },
     async (req) => {
       await getSiteRow(db, req.params.siteId);
-      return replaceFloors(db, req.params.siteId, req.body);
+      try {
+        return await replaceFloors(db, req.params.siteId, req.body);
+      } finally {
+        directory.invalidate();
+      }
     },
   );
 }

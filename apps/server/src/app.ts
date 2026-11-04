@@ -14,6 +14,8 @@ import type { Db } from './db/client.js';
 import { registerAuth } from './auth/session.js';
 import { HttpError } from './errors.js';
 import { KeyedMutex } from './lib/keyedMutex.js';
+import { DeviceDirectory } from './devices/directory.js';
+import { registerDeviceRoutes } from './devices/routes.js';
 import { registerSiteRoutes } from './sites/routes.js';
 import type { ObjectStorage } from './storage/types.js';
 
@@ -22,6 +24,12 @@ export interface AppDeps {
   db: Db;
   storage: ObjectStorage;
   clock: () => Date;
+}
+
+declare module 'fastify' {
+  interface FastifyInstance {
+    deviceDirectory: DeviceDirectory;
+  }
 }
 
 export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
@@ -64,7 +72,10 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
 
   await registerAuth(app, deps);
 
-  await registerSiteRoutes(app, deps, new KeyedMutex());
+  const deviceDirectory = new DeviceDirectory(deps.db);
+  app.decorate('deviceDirectory', deviceDirectory);
+  await registerSiteRoutes(app, deps, new KeyedMutex(), deviceDirectory);
+  await registerDeviceRoutes(app, deps, deviceDirectory);
 
   const typed = app.withTypeProvider<ZodTypeProvider>();
   typed.get(
