@@ -212,3 +212,12 @@ test('visibleObjectCount counts objects that still have opacity', () => {
   expect(visibleObjectCount(state().objects, 4_000)).toBe(2);
   expect(visibleObjectCount(state().objects, 4_001)).toBe(1);
 });
+
+test('snapshotSiteId is set only by a snapshot and cleared by watch', () => {
+  state().watch('s1');
+  expect(state().snapshotSiteId).toBeNull();
+  state().apply(snapshot('s1'), 0);
+  expect(state().snapshotSiteId).toBe('s1');
+  state().watch('s2');
+  expect(state().snapshotSiteId).toBeNull();
+});

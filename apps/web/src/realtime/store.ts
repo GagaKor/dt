@@ -20,6 +20,8 @@ export interface RealtimeState {
   siteId: string | null;
   /** Site whose monitor or dashboard is open; its new alarms need no toast. */
   viewedSiteId: string | null;
+  /** Site of the last applied snapshot; null until the server confirms a subscription. */
+  snapshotSiteId: string | null;
   objects: Map<string, ClientObject>;
   alarms: Map<string, Alarm>;
   /** Unacknowledged counts of every site. */
@@ -45,6 +47,7 @@ export const realtimeNow = (): number => performance.now();
 const initial = () => ({
   siteId: null,
   viewedSiteId: null,
+  snapshotSiteId: null,
   objects: new Map<string, ClientObject>(),
   alarms: new Map<string, Alarm>(),
   sites: [],
@@ -70,6 +73,7 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
         }
         set({
           siteId: msg.siteId,
+          snapshotSiteId: msg.siteId,
           objects: new Map(msg.objects.map((o) => [o.key, { ...o, lastSeenMs: nowMs - o.ageMs }])),
           alarms: unacked(msg.alarms),
           sites: msg.sites,
@@ -133,7 +137,13 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
       if (rejectedSiteId !== s.rejectedSiteId) set({ rejectedSiteId });
       return;
     }
-    set({ siteId, objects: new Map(), alarms: new Map(), rejectedSiteId });
+    set({
+      siteId,
+      snapshotSiteId: null,
+      objects: new Map(),
+      alarms: new Map(),
+      rejectedSiteId,
+    });
   },
 
   setViewedSite(siteId) {

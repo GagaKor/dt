@@ -85,16 +85,8 @@ test('success criteria: model to acknowledged alarm on the dashboard', async ({
   await test.step('first event raises an alarm', async () => {
     await page.getByRole('link', { name: /monitor/i }).click();
     await expect(page.getByTestId('realtime-status')).toHaveAttribute('data-state', 'open');
-    await expect
-      .poll(() =>
-        page.evaluate(
-          () =>
-            (
-              window as unknown as { __dtStore: { getState(): { siteId: string | null } } }
-            ).__dtStore.getState().siteId,
-        ),
-      )
-      .not.toBeNull();
+    const siteId = new URL(page.url()).pathname.split('/')[2];
+    await expect(page.getByTestId('realtime-status')).toHaveAttribute('data-snapshot', siteId);
     const res = await request.post('/api/ingest/events', {
       headers: { Authorization: `Bearer ${key}` },
       data: event(),

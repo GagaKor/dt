@@ -43,6 +43,7 @@ export function KpiStrip({ siteId }: KpiStripProps) {
   const unacked = useRealtimeStore((s) => s.sites.find((x) => x.siteId === siteId)?.unacked);
   const objects = useRealtimeStore((s) => (s.siteId === siteId ? s.objects : NO_OBJECTS));
   const status = useRealtimeStore((s) => s.status);
+  const snapshotSiteId = useRealtimeStore((s) => s.snapshotSiteId);
   const [now, setNow] = useState(realtimeNow);
 
   useEffect(() => {
@@ -67,6 +68,7 @@ export function KpiStrip({ siteId }: KpiStripProps) {
         role="status"
         data-testid="realtime-status"
         data-state={status}
+        data-snapshot={snapshotSiteId ?? undefined}
         className="ml-auto flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300"
       >
         <span aria-hidden className={`h-2 w-2 rounded-full ${STATUS_DOT[status]}`} />
