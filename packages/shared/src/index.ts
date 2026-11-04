@@ -6,3 +6,4 @@ export * from './schemas/ingest';
 export * from './schemas/entities';
 export * from './schemas/realtime';
 export * from './schemas/stats';
+export * from './floors';
