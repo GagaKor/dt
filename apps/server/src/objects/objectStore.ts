@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { OBJECT_TTL_MS, type ObjectStateWire } from '@dt/shared';
+import type { FastifyBaseLogger } from 'fastify';
 import type { ObjectSink, ObjectUpsert } from '../ingest/eventService.js';
 
 type OnChange = (siteId: string, states: ObjectStateWire[]) => void;
@@ -11,6 +12,7 @@ export class ObjectStore implements ObjectSink {
   constructor(
     private readonly nowMs: () => number,
     private onChange: OnChange,
+    private readonly log?: Pick<FastifyBaseLogger, 'error'>,
   ) {}
 
   setOnChange(fn: OnChange): void {
@@ -19,7 +21,7 @@ export class ObjectStore implements ObjectSink {
 
   upsert(input: ObjectUpsert): ObjectStateWire {
     const state = this.apply(input);
-    this.onChange(state.siteId, [state]);
+    this.notify(state.siteId, [state]);
     return state;
   }
 
@@ -31,7 +33,7 @@ export class ObjectStore implements ObjectSink {
       if (list) list.push(state);
       else bySite.set(state.siteId, [state]);
     }
-    for (const [siteId, states] of bySite) this.onChange(siteId, states);
+    for (const [siteId, states] of bySite) this.notify(siteId, states);
   }
 
   listSite(siteId: string): ObjectStateWire[] {
@@ -47,6 +49,15 @@ export class ObjectStore implements ObjectSink {
     const now = this.nowMs();
     for (const [key, e] of this.entries) {
       if (now - e.lastUpdateMs >= OBJECT_TTL_MS) this.entries.delete(key);
+    }
+  }
+
+  // State is already applied; a listener failure must not fail the ingest request.
+  private notify(siteId: string, states: ObjectStateWire[]): void {
+    try {
+      this.onChange(siteId, states);
+    } catch (err) {
+      this.log?.error({ err, siteId }, 'object change listener failed');
     }
   }
 

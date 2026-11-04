@@ -92,6 +92,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   const objectStore = new ObjectStore(
     () => deps.clock().getTime(),
     () => undefined,
+    app.log,
   );
   app.decorate('objectStore', objectStore);
   const sweepTimer = setInterval(() => objectStore.sweep(), 1000);
@@ -104,6 +105,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
     objects: objectStore,
     publisher: { alarmChanged: () => undefined },
     clock: deps.clock,
+    log: app.log,
   });
   app.decorate('eventService', eventService);
   await registerEventRoutes(app, eventService);

@@ -1,5 +1,5 @@
 import type { Alarm, ObjectType, Severity } from '@dt/shared';
-import { eq } from 'drizzle-orm';
+import { desc, eq, type SQL } from 'drizzle-orm';
 import type { Db } from '../db/client.js';
 import { alarms, devices, integrationKeys } from '../db/schema.js';
 
@@ -32,14 +32,25 @@ export function toAlarmDto(
   };
 }
 
-export async function loadAlarmDto(db: Db, id: string): Promise<Alarm | null> {
-  const [r] = await db
+export async function queryAlarmDtos(
+  db: Db,
+  where: SQL | undefined,
+  limit: number,
+): Promise<Alarm[]> {
+  const rows = await db
     .select({ alarm: alarms, deviceName: devices.name, keyName: integrationKeys.name })
     .from(alarms)
     .leftJoin(devices, eq(devices.id, alarms.deviceId))
     .innerJoin(integrationKeys, eq(integrationKeys.id, alarms.integrationKeyId))
-    .where(eq(alarms.id, id));
-  return r
-    ? toAlarmDto(r.alarm, { deviceName: r.deviceName, integrationKeyName: r.keyName })
-    : null;
+    .where(where)
+    .orderBy(desc(alarms.lastReceivedAt), desc(alarms.id))
+    .limit(limit);
+  return rows.map((r) =>
+    toAlarmDto(r.alarm, { deviceName: r.deviceName, integrationKeyName: r.keyName }),
+  );
+}
+
+export async function loadAlarmDto(db: Db, id: string): Promise<Alarm | null> {
+  const [dto] = await queryAlarmDtos(db, eq(alarms.id, id), 1);
+  return dto ?? null;
 }

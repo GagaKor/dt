@@ -7,7 +7,8 @@ import {
   type Severity,
 } from '@dt/shared';
 import { and, desc, eq, isNull } from 'drizzle-orm';
-import { decideAlarm, situationKey } from '../alarms/grouping.js';
+import type { FastifyBaseLogger } from 'fastify';
+import { decideAlarm, situationKey, type SituationParts } from '../alarms/grouping.js';
 import { loadAlarmDto } from '../alarms/dto.js';
 import type { Db } from '../db/client.js';
 import { alarms, events } from '../db/schema.js';
@@ -47,6 +48,7 @@ export interface EventServiceDeps {
   objects: ObjectSink;
   publisher: AlarmPublisher;
   clock: () => Date;
+  log: Pick<FastifyBaseLogger, 'error'>;
 }
 
 const isUniqueViolation = (err: unknown): boolean =>
@@ -64,8 +66,29 @@ export class EventService {
     this.d.publisher = publisher;
   }
 
+  // Callers hold the situation lock so publishes for one alarm leave in commit order.
+  // Failures are only logged: the change is already committed and a 500 would invite a retry.
   publishAlarm(alarm: Alarm, created: boolean): void {
-    this.d.publisher.alarmChanged(alarm, created);
+    try {
+      this.d.publisher.alarmChanged(alarm, created);
+    } catch (err) {
+      this.d.log.error({ err, alarmId: alarm.id }, 'alarm publish failed');
+    }
+  }
+
+  withSituationLock<T>(parts: SituationParts, fn: () => Promise<T>): Promise<T> {
+    return this.d.mutex.run(`alarm:${situationKey(parts)}`, fn);
+  }
+
+  private async publishCommitted(alarmId: string, created: boolean): Promise<void> {
+    let dto: Alarm | null;
+    try {
+      dto = await loadAlarmDto(this.d.db, alarmId);
+    } catch (err) {
+      this.d.log.error({ err, alarmId }, 'alarm publish failed');
+      return;
+    }
+    if (dto) this.publishAlarm(dto, created);
   }
 
   async ingest(key: IntegrationKeyRecord, msg: EventMessage): Promise<IngestEventResult> {
@@ -91,18 +114,18 @@ export class EventService {
       return dup ? { status: 'duplicate', alarmId: dup.alarmId } : null;
     };
 
-    const sKey = situationKey({
+    const situation: SituationParts = {
       integrationKeyId: key.id,
       deviceId: msg.deviceId,
       eventType: msg.eventType,
       objectId,
-    });
+    };
 
-    let outcome: { result: IngestEventResult; created: boolean } | null;
+    let outcome: IngestEventResult | null;
     try {
-      outcome = await this.d.mutex.run(`alarm:${sKey}`, async () => {
+      outcome = await this.withSituationLock(situation, async () => {
         const dup = await findDuplicate();
-        if (dup) return { result: dup, created: false };
+        if (dup) return dup;
 
         // Taken inside the lock so lastReceivedAt never moves backwards for one situation.
         const receivedAt = this.d.clock();
@@ -130,8 +153,6 @@ export class EventService {
               .set({
                 count: existing.count + 1,
                 severity: maxSeverity(existing.severity as Severity, severity),
-                firstOccurredAt:
-                  occurredAt < existing.firstOccurredAt ? occurredAt : existing.firstOccurredAt,
                 lastOccurredAt:
                   occurredAt > existing.lastOccurredAt ? occurredAt : existing.lastOccurredAt,
                 lastReceivedAt: receivedAt,
@@ -177,10 +198,9 @@ export class EventService {
           });
           return id;
         });
-        return {
-          result: { status: decision.kind === 'create' ? 'created' : 'merged', alarmId },
-          created: decision.kind === 'create',
-        };
+        const created = decision.kind === 'create';
+        await this.publishCommitted(alarmId, created);
+        return { status: created ? 'created' : 'merged', alarmId };
       });
     } catch (err) {
       if (!isUniqueViolation(err)) throw err;
@@ -192,22 +212,24 @@ export class EventService {
       if (!dup) throw new HttpError(409, 'conflict', 'Conflicting event');
       return dup;
     }
-    if (outcome.result.status === 'duplicate') return outcome.result;
+    if (outcome.status === 'duplicate') return outcome;
 
     if (hasPosition) {
-      this.d.objects.upsert({
-        integrationKeyId: key.id,
-        deviceId: msg.deviceId,
-        siteId: device.siteId,
-        floorId: device.floorId,
-        x: msg.x as number,
-        y: msg.y as number,
-        objectId,
-        objectType,
-      });
+      try {
+        this.d.objects.upsert({
+          integrationKeyId: key.id,
+          deviceId: msg.deviceId,
+          siteId: device.siteId,
+          floorId: device.floorId,
+          x: msg.x as number,
+          y: msg.y as number,
+          objectId,
+          objectType,
+        });
+      } catch (err) {
+        this.d.log.error({ err, alarmId: outcome.alarmId }, 'object upsert from event failed');
+      }
     }
-    const dto = await loadAlarmDto(db, outcome.result.alarmId);
-    if (dto) this.d.publisher.alarmChanged(dto, outcome.created);
-    return outcome.result;
+    return outcome;
   }
 }

@@ -59,6 +59,15 @@ describe('POST /api/ingest/positions', () => {
     expect(t.app.objectStore.listSite(siteId)).toHaveLength(1);
   });
 
+  test('a throwing change listener does not fail an accepted batch', async () => {
+    t.app.objectStore.setOnChange(() => {
+      throw new Error('listener down');
+    });
+    const res = await post([pos({ objectId: 'o1' }), pos({ objectId: 'o2' })]);
+    expect(res.statusCode).toBe(202);
+    expect(t.app.objectStore.listSite(siteId)).toHaveLength(2);
+  });
+
   test('array of 3 -> accepted 3', async () => {
     const res = await post([pos(), pos(), pos()]);
     expect(res.statusCode).toBe(202);

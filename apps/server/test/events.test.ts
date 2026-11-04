@@ -158,6 +158,34 @@ describe('POST /api/ingest/events', () => {
     expect(rows).toHaveLength(20);
   });
 
+  test('merge with an older occurredAt keeps the original firstOccurredAt', async () => {
+    const first = t.clock.now().toISOString();
+    await post(evt());
+    t.clock.advance(5_000);
+    const older = new Date(t.clock.now().getTime() - 60_000).toISOString();
+    expect((await post(evt({ occurredAt: older }))).json().status).toBe('merged');
+    const [alarm] = await listAlarms();
+    expect(alarm).toMatchObject({ count: 2, firstOccurredAt: first, lastOccurredAt: first });
+  });
+
+  test('a throwing publisher does not fail a committed ingest', async () => {
+    t.app.eventService.setPublisher({
+      alarmChanged: () => {
+        throw new Error('publisher down');
+      },
+    });
+    t.app.eventService.setObjectSink({
+      upsert: () => {
+        throw new Error('sink down');
+      },
+    });
+    const res = await post(evt({ x: 1, y: 2 }));
+    expect(res.statusCode).toBe(201);
+    const [alarm, ...rest] = await listAlarms();
+    expect(rest).toHaveLength(0);
+    expect(alarm!.id).toBe(res.json().alarmId);
+  });
+
   test('concurrent identical eventId yields one event', async () => {
     const results = await Promise.all(
       Array.from({ length: 5 }, () => post(evt({ eventId: 'same' }))),
@@ -178,6 +206,7 @@ describe('EventService extension points', () => {
       objects: { upsert: (i) => void upserts.push(i) },
       publisher: { alarmChanged: (a, c) => void published.push([a, c]) },
       clock: t.deps.clock,
+      log: t.app.log,
     });
     const key = { id: keyId, name: 'Hub', defaultSeverity: 'critical' as const };
     const base = {
