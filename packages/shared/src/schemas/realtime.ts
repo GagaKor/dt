@@ -5,7 +5,7 @@ import type { Alarm } from './entities';
 export type ClientMessage = { type: 'subscribe'; siteId: string };
 
 // Close codes the server uses on /api/ws. A client should not retry after `unauthenticated`
-// until the user logs in again.
+// (no session, or the session expired while connected) until the user logs in again.
 export const REALTIME_CLOSE_CODES = {
   badMessage: 4400,
   unauthenticated: 4401,
@@ -48,4 +48,6 @@ export type ServerMessage =
     }
   | { type: 'objects'; siteId: string; objects: ObjectStateWire[] }
   | { type: 'alarm'; alarm: Alarm; created: boolean }
-  | { type: 'summary'; sites: SiteSummary[]; newAlarm: NewAlarmNotice | null };
+  | { type: 'summary'; sites: SiteSummary[]; newAlarm: NewAlarmNotice | null }
+  /** Heartbeat with the server time (epoch ms); it only proves the connection is alive. */
+  | { type: 'ping'; t: number };

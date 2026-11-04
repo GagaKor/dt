@@ -58,6 +58,7 @@ afterEach(() => {
 function setup(siteId?: string, path = siteId ? `/sites/${siteId}/monitor` : '/settings/keys') {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const invalidate = vi.spyOn(qc, 'invalidateQueries');
+  const reset = vi.spyOn(qc, 'resetQueries');
   const view = render(
     <QueryClientProvider client={qc}>
       <MemoryRouter initialEntries={[path]}>
@@ -69,7 +70,7 @@ function setup(siteId?: string, path = siteId ? `/sites/${siteId}/monitor` : '/s
   );
   const ws = FakeWebSocket.instances[0]!;
   act(() => ws.open());
-  return { invalidate, view, ws };
+  return { invalidate, reset, view, ws };
 }
 
 const subscribe = (siteId: string) => JSON.stringify({ type: 'subscribe', siteId });
@@ -140,9 +141,9 @@ test('unmounting closes the connection and clears the store', async () => {
 });
 
 test('an unauthenticated close re-checks the session', async () => {
-  const { ws, invalidate } = setup('s2');
+  const { ws, reset } = setup('s2');
   act(() => ws.serverClose(4401));
-  expect(invalidate).toHaveBeenCalledWith({ queryKey: ['me'] });
+  expect(reset).toHaveBeenCalledWith({ queryKey: ['me'] });
 });
 
 test('an unknown site close marks the site as refused', async () => {

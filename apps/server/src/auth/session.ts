@@ -21,11 +21,17 @@ declare module 'fastify' {
 
 const payloadSchema = z.object({ u: z.string(), exp: z.number() });
 
+export interface Session {
+  username: string;
+  /** Expiry, epoch ms. */
+  exp: number;
+}
+
 export function verifySessionCookie(
   raw: string | undefined,
   secret: string,
   now: Date,
-): { username: string } | null {
+): Session | null {
   if (!raw) return null;
   const result = cookie.unsign(raw, secret);
   if (!result.valid) return null;
@@ -37,14 +43,14 @@ export function verifySessionCookie(
   }
   const parsed = payloadSchema.safeParse(json);
   if (!parsed.success || parsed.data.exp <= now.getTime()) return null;
-  return { username: parsed.data.u };
+  return { username: parsed.data.u, exp: parsed.data.exp };
 }
 
 export function readSessionFromCookieHeader(
   header: string | undefined,
   secret: string,
   now: Date,
-): { username: string } | null {
+): Session | null {
   if (!header) return null;
   return verifySessionCookie(parseCookie(header)[SESSION_COOKIE], secret, now);
 }

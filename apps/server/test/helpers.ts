@@ -42,6 +42,7 @@ export interface TestApp {
 export async function createTestApp(
   opts: {
     config?: Partial<Config>;
+    realtimeHeartbeatMs?: number;
     beforeReady?: (app: FastifyInstance) => void | Promise<void>;
   } = {},
 ): Promise<TestApp> {
@@ -63,6 +64,7 @@ export async function createTestApp(
     db,
     storage: new LocalDiskStorage(dir),
     clock: () => clock.now(),
+    realtimeHeartbeatMs: opts.realtimeHeartbeatMs,
   };
   const app = await buildApp(deps);
   await opts.beforeReady?.(app);

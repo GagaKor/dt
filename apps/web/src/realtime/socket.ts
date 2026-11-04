@@ -1,4 +1,9 @@
-import { REALTIME_CLOSE_CODES, type ClientMessage, type ServerMessage } from '@dt/shared';
+import {
+  REALTIME_CLOSE_CODES,
+  REALTIME_STALE_MS,
+  type ClientMessage,
+  type ServerMessage,
+} from '@dt/shared';
 
 export type RealtimeStatus = 'connecting' | 'open' | 'closed';
 
@@ -23,7 +28,14 @@ export const RECONNECT_BASE_MS = 1_000;
 export const RECONNECT_MAX_MS = 10_000;
 
 const OPEN = 1;
-const MESSAGE_TYPES: ReadonlySet<string> = new Set(['snapshot', 'objects', 'alarm', 'summary']);
+const ABNORMAL_CLOSURE = 1006;
+const MESSAGE_TYPES: ReadonlySet<string> = new Set([
+  'snapshot',
+  'objects',
+  'alarm',
+  'summary',
+  'ping',
+]);
 
 export function realtimeUrl(loc: Pick<Location, 'protocol' | 'host'>): string {
   return `${loc.protocol === 'https:' ? 'wss:' : 'ws:'}//${loc.host}/api/ws`;
@@ -49,7 +61,26 @@ export function connectRealtime(o: RealtimeOptions): RealtimeConnection {
   let sentSiteId: string | null = null;
   let attempt = 0;
   let timer: ReturnType<typeof setTimeout> | null = null;
+  let watchdog: ReturnType<typeof setTimeout> | null = null;
   let stopped = false;
+
+  const stopWatchdog = () => {
+    if (watchdog) clearTimeout(watchdog);
+    watchdog = null;
+  };
+
+  // The server pings every 25 s. A connection dropped without a close frame (sleep, Wi-Fi
+  // change, proxy timeout) may not fire onclose for minutes, so silence means it is dead.
+  const armWatchdog = (socket: WebSocket) => {
+    stopWatchdog();
+    watchdog = setTimeout(() => {
+      watchdog = null;
+      if (ws !== socket) return;
+      ws = null;
+      socket.close();
+      onClosed(ABNORMAL_CLOSURE);
+    }, REALTIME_STALE_MS);
+  };
 
   const sendSubscribe = () => {
     if (!ws || ws.readyState !== OPEN || siteId === null || sentSiteId === siteId) return;
@@ -68,6 +99,7 @@ export function connectRealtime(o: RealtimeOptions): RealtimeConnection {
   };
 
   const onClosed = (code: number) => {
+    stopWatchdog();
     ws = null;
     sentSiteId = null;
     o.onStatus('closed');
@@ -94,11 +126,13 @@ export function connectRealtime(o: RealtimeOptions): RealtimeConnection {
     socket.onopen = () => {
       if (ws !== socket) return;
       attempt = 0;
+      armWatchdog(socket);
       o.onStatus('open');
       sendSubscribe();
     };
     socket.onmessage = (e: MessageEvent) => {
       if (ws !== socket) return;
+      armWatchdog(socket);
       const msg = parse(e.data);
       if (msg) o.onMessage(msg);
     };
@@ -119,6 +153,7 @@ export function connectRealtime(o: RealtimeOptions): RealtimeConnection {
       stopped = true;
       if (timer) clearTimeout(timer);
       timer = null;
+      stopWatchdog();
       const socket = ws;
       ws = null;
       socket?.close(1000);

@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import type {
   Alarm,
   Device,
@@ -24,6 +24,15 @@ export function useMe() {
     retry: false,
     staleTime: 60_000,
   });
+}
+
+/**
+ * Re-checks the session after the server answered 401, so RequireAuth sends the user to the
+ * login page. A reset rather than an invalidation: the failed check must not keep the old
+ * user as data, or RequireAuth would still see the error after the next login.
+ */
+export function resetSession(qc: QueryClient): Promise<void> {
+  return qc.resetQueries({ queryKey: meKey });
 }
 
 export function useSites() {

@@ -32,30 +32,39 @@ export interface RealtimeHubDeps {
   db: Db;
   objects: ObjectStore;
   intervalMs: number;
+  /** Ping period; session expiry is checked on the same tick. */
+  heartbeatMs: number;
+  /** Epoch ms. */
+  clock: () => number;
   log?: Pick<FastifyBaseLogger, 'error'>;
 }
 
 interface Client {
   siteId: string | null;
+  /** Session expiry, epoch ms; the socket is closed with 4401 once it passes. */
+  sessionExp: number;
 }
 
 export class RealtimeHub implements AlarmPublisher {
   private readonly clients = new Map<WebSocket, Client>();
   private readonly pendingObjects = new Map<string, Map<string, ObjectStateWire>>();
   private flushTimer: NodeJS.Timeout | null = null;
+  private readonly heartbeatTimer: NodeJS.Timeout;
   // Snapshots and alarm pushes run one at a time, in call order, so no client can see an
   // older alarm state or summary after a newer one.
   private queue: Promise<void> = Promise.resolve();
   private closed = false;
 
-  constructor(private readonly d: RealtimeHubDeps) {}
+  constructor(private readonly d: RealtimeHubDeps) {
+    this.heartbeatTimer = setInterval(() => this.heartbeat(), d.heartbeatMs);
+  }
 
-  handleConnection(socket: WebSocket): void {
+  handleConnection(socket: WebSocket, sessionExp: number): void {
     if (this.closed) {
       socket.close(1001, 'server shutting down');
       return;
     }
-    const client: Client = { siteId: null };
+    const client: Client = { siteId: null, sessionExp };
     this.clients.set(socket, client);
     const drop = () => this.clients.delete(socket);
     socket.on('close', drop);
@@ -106,6 +115,7 @@ export class RealtimeHub implements AlarmPublisher {
 
   async close(): Promise<void> {
     this.closed = true;
+    clearInterval(this.heartbeatTimer);
     if (this.flushTimer) clearTimeout(this.flushTimer);
     this.flushTimer = null;
     this.pendingObjects.clear();
@@ -142,6 +152,16 @@ export class RealtimeHub implements AlarmPublisher {
       this.d.log?.error({ err, siteId }, 'realtime snapshot failed');
       socket.close(1011, 'snapshot failed');
     }
+  }
+
+  private heartbeat(): void {
+    const now = this.d.clock();
+    for (const [socket, c] of this.clients) {
+      if (c.sessionExp > now) continue;
+      this.clients.delete(socket);
+      socket.close(REALTIME_CLOSE_CODES.unauthenticated, 'session expired');
+    }
+    this.broadcast({ type: 'ping', t: now });
   }
 
   private loadSummary(): Promise<SiteSummary[]> {

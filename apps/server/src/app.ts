@@ -12,7 +12,7 @@ import {
   type ZodTypeProvider,
 } from 'fastify-type-provider-zod';
 import { z } from 'zod';
-import { OBJECTS_BROADCAST_INTERVAL_MS } from '@dt/shared';
+import { OBJECTS_BROADCAST_INTERVAL_MS, REALTIME_HEARTBEAT_MS } from '@dt/shared';
 import type { Config } from './config.js';
 import type { Db } from './db/client.js';
 import { registerAuth } from './auth/session.js';
@@ -38,6 +38,8 @@ export interface AppDeps {
   db: Db;
   storage: ObjectStorage;
   clock: () => Date;
+  /** Overrides REALTIME_HEARTBEAT_MS (tests). */
+  realtimeHeartbeatMs?: number;
 }
 
 declare module 'fastify' {
@@ -119,6 +121,8 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
     db: deps.db,
     objects: objectStore,
     intervalMs: OBJECTS_BROADCAST_INTERVAL_MS,
+    heartbeatMs: deps.realtimeHeartbeatMs ?? REALTIME_HEARTBEAT_MS,
+    clock: () => deps.clock().getTime(),
     log: app.log,
   });
   objectStore.setOnChange((siteId, states) => hub.objectsChanged(siteId, states));

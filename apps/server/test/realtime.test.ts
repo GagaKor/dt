@@ -277,3 +277,33 @@ describe('GET /api/ws', () => {
     expect((await unknown.closed).code).toBe(4404);
   });
 });
+
+describe('heartbeat and session expiry', () => {
+  const HEARTBEAT_MS = 30;
+  const HOUR_MS = 60 * 60 * 1000;
+
+  beforeEach(async () => {
+    await t.close();
+    t = await createTestApp({ realtimeHeartbeatMs: HEARTBEAT_MS });
+    cookie = await loginCookie(t.app);
+    url = await listenWsUrl(t.app);
+  });
+
+  test('sends a ping to every client within the heartbeat interval', async () => {
+    const [a, b] = await Promise.all([connect(), connect()]);
+    const ping = await a!.waitFor('ping', () => true, { timeoutMs: 1_000 });
+    expect(ping.t).toBe(t.clock.now().getTime());
+    await b!.waitFor('ping', () => true, { timeoutMs: 1_000 });
+  });
+
+  test('closes a socket with 4401 once its session expires', async () => {
+    const early = await connect();
+    t.clock.advance(6 * HOUR_MS);
+    const late = await connect(await loginCookie(t.app));
+    t.clock.advance(6 * HOUR_MS + 1_000);
+    expect((await early.closed).code).toBe(4401);
+    const from = late.messages.length;
+    await late.waitFor('ping', () => true, { from, timeoutMs: 1_000 });
+    expect(late.socket.readyState).toBe(late.socket.OPEN);
+  });
+});

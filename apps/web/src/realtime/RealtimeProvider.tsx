@@ -1,7 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, type ReactNode } from 'react';
 import { useMatch } from 'react-router';
-import { kpiKey, meKey, useSites } from '../api/queries';
+import { kpiKey, resetSession, useSites } from '../api/queries';
 import { connectRealtime, realtimeUrl, type RealtimeConnection } from './socket';
 import { realtimeNow, useRealtimeStore } from './store';
 
@@ -52,7 +52,7 @@ export function RealtimeProvider({ siteId, children }: RealtimeProviderProps) {
       onStatus: (s) => store().setStatus(s),
       onRejected: (r) => {
         // An expired session: re-checking it sends RequireAuth to the login page.
-        if (r.reason === 'unauthenticated') void qc.invalidateQueries({ queryKey: meKey });
+        if (r.reason === 'unauthenticated') void resetSession(qc);
         else store().reject(r.siteId);
       },
     });

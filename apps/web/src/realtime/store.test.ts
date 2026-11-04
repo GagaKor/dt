@@ -83,6 +83,13 @@ test('snapshot replaces stale objects', () => {
   expect(useRealtimeStore.getState().objects.get('new')!.lastSeenMs).toBe(9_500);
 });
 
+test('ping messages leave the state untouched', () => {
+  state().apply(snapshot('s1', { alarms: [alarm()], sites: [site('s1', 1)] }), 0);
+  const before = state();
+  state().apply({ type: 'ping', t: 1 }, 10);
+  expect(state()).toBe(before);
+});
+
 test('snapshot sets the site, alarms and site summary', () => {
   state().apply(snapshot('s1', { alarms: [alarm()], sites: [site('s1', 1)] }), 0);
   expect(state().siteId).toBe('s1');

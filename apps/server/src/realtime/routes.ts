@@ -23,6 +23,6 @@ export async function registerRealtimeRoutes(
       socket.close(REALTIME_CLOSE_CODES.unauthenticated, 'unauthenticated');
       return;
     }
-    hub.handleConnection(socket);
+    hub.handleConnection(socket, session.exp);
   });
 }

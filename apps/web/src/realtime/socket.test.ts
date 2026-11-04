@@ -1,7 +1,7 @@
 import type { ServerMessage } from '@dt/shared';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { FakeWebSocket } from './fakeWebSocket';
-import { connectRealtime, realtimeUrl, type RealtimeStatus } from './socket';
+import { connectRealtime, RECONNECT_BASE_MS, realtimeUrl, type RealtimeStatus } from './socket';
 
 const sockets = () => FakeWebSocket.instances;
 const last = () => sockets().at(-1)!;
@@ -134,6 +134,36 @@ test('close during a pending reconnect cancels it', async () => {
   rt.close();
   await vi.advanceTimersByTimeAsync(60_000);
   expect(sockets()).toHaveLength(1);
+});
+
+test('a socket silent for 60s is closed and replaced through the reconnect backoff', async () => {
+  const { statuses } = setup();
+  const first = last();
+  first.open();
+  await vi.advanceTimersByTimeAsync(59_000);
+  first.receive({ type: 'ping', t: 1 });
+  await vi.advanceTimersByTimeAsync(59_999);
+  expect(first.closedWith).toBeNull();
+  expect(sockets()).toHaveLength(1);
+
+  await vi.advanceTimersByTimeAsync(1);
+  expect(first.closedWith).not.toBeNull();
+  expect(statuses.at(-1)).toBe('closed');
+  await vi.advanceTimersByTimeAsync(RECONNECT_BASE_MS - 1);
+  expect(sockets()).toHaveLength(1);
+  await vi.advanceTimersByTimeAsync(1);
+  expect(sockets()).toHaveLength(2);
+  expect(statuses.at(-1)).toBe('connecting');
+  // No second reconnect from the abandoned socket.
+  await vi.advanceTimersByTimeAsync(30_000);
+  expect(sockets()).toHaveLength(2);
+});
+
+test('pings are forwarded like other messages', () => {
+  const { messages } = setup();
+  last().open();
+  last().receive({ type: 'ping', t: 5 });
+  expect(messages).toEqual([{ type: 'ping', t: 5 }]);
 });
 
 test('realtimeUrl follows the page protocol and host', () => {
