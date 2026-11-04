@@ -11,6 +11,7 @@ import {
 import { z } from 'zod';
 import type { Config } from './config.js';
 import type { Db } from './db/client.js';
+import { registerAuth } from './auth/session.js';
 import { HttpError } from './errors.js';
 import type { ObjectStorage } from './storage/types.js';
 
@@ -58,6 +59,8 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
     transform: jsonSchemaTransform,
   });
   await app.register(swaggerUi, { routePrefix: '/api/docs' });
+
+  await registerAuth(app, deps);
 
   const typed = app.withTypeProvider<ZodTypeProvider>();
   typed.get(

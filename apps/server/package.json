@@ -20,6 +20,7 @@
   "dependencies": {
     "@dt/shared": "workspace:*",
     "@electric-sql/pglite": "^0.5.14",
+    "@fastify/cookie": "^11.1.5",
     "@fastify/swagger": "^9.9.3",
     "@fastify/swagger-ui": "^6.1.2",
     "drizzle-orm": "^0.45.4",

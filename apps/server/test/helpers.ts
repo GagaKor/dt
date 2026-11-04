@@ -72,3 +72,14 @@ export async function createTestApp(opts: { config?: Partial<Config> } = {}): Pr
     },
   };
 }
+
+export async function loginCookie(app: FastifyInstance): Promise<string> {
+  const res = await app.inject({
+    method: 'POST',
+    url: '/api/auth/login',
+    payload: { username: 'admin', password: 'test-password' },
+  });
+  const c = res.cookies.find((x) => x.name === 'dt_session');
+  if (!c) throw new Error(`login failed: ${res.statusCode} ${res.body}`);
+  return `dt_session=${c.value}`;
+}
