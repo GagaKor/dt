@@ -4,6 +4,14 @@ import type { Alarm } from './entities';
 
 export type ClientMessage = { type: 'subscribe'; siteId: string };
 
+// Close codes the server uses on /api/ws. A client should not retry after `unauthenticated`
+// until the user logs in again.
+export const REALTIME_CLOSE_CODES = {
+  badMessage: 4400,
+  unauthenticated: 4401,
+  unknownSite: 4404,
+} as const;
+
 export interface ObjectStateWire {
   key: string;
   siteId: string;

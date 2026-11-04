@@ -9,6 +9,7 @@ import {
   type ZodTypeProvider,
 } from 'fastify-type-provider-zod';
 import { z } from 'zod';
+import { OBJECTS_BROADCAST_INTERVAL_MS } from '@dt/shared';
 import type { Config } from './config.js';
 import type { Db } from './db/client.js';
 import { registerAuth } from './auth/session.js';
@@ -20,6 +21,8 @@ import { EventService } from './ingest/eventService.js';
 import { registerEventRoutes } from './ingest/eventRoutes.js';
 import { registerPositionRoutes } from './ingest/positionRoutes.js';
 import { ObjectStore } from './objects/objectStore.js';
+import { RealtimeHub } from './realtime/hub.js';
+import { registerRealtimeRoutes } from './realtime/routes.js';
 import { registerDeviceRoutes } from './devices/routes.js';
 import { KeyAuthenticator } from './keys/keyAuth.js';
 import { registerKeyRoutes } from './keys/routes.js';
@@ -98,12 +101,21 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   const sweepTimer = setInterval(() => objectStore.sweep(), 1000);
   app.addHook('onClose', async () => clearInterval(sweepTimer));
 
+  const hub = new RealtimeHub({
+    db: deps.db,
+    objects: objectStore,
+    intervalMs: OBJECTS_BROADCAST_INTERVAL_MS,
+    log: app.log,
+  });
+  objectStore.setOnChange((siteId, states) => hub.objectsChanged(siteId, states));
+  app.addHook('onClose', () => hub.close());
+
   const eventService = new EventService({
     db: deps.db,
     devices: deviceDirectory,
     mutex,
     objects: objectStore,
-    publisher: { alarmChanged: () => undefined },
+    publisher: hub,
     clock: deps.clock,
     log: app.log,
   });
@@ -111,6 +123,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   await registerEventRoutes(app, eventService);
   await registerPositionRoutes(app, deps.clock);
   await registerAlarmRoutes(app, deps, eventService);
+  await registerRealtimeRoutes(app, deps, hub);
 
   const typed = app.withTypeProvider<ZodTypeProvider>();
   typed.get(
