@@ -14,7 +14,7 @@
     "typecheck": "pnpm -r typecheck",
     "lint": "eslint . && prettier --check .",
     "dev": "pnpm --parallel --filter @dt/server --filter @dt/web dev",
-    "sim": "echo 'sim: not wired yet' && exit 1",
+    "sim": "pnpm --filter @dt/simulator start",
     "e2e": "echo 'e2e: not wired yet' && exit 1"
   },
   "devDependencies": {
