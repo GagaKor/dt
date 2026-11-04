@@ -1,6 +1,7 @@
 import fastifyStatic from '@fastify/static';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
+import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import Fastify, { type FastifyInstance } from 'fastify';
 import {
@@ -76,9 +77,16 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
     return reply.status(500).send({ code: 'internal_error', message: 'Internal server error' });
   });
   const webDist = deps.config.WEB_DIST_DIR;
+  // Read once: reply.sendFile inside the not-found handler runs on a reply static already used.
+  const indexHtml = webDist ? await readFile(resolve(webDist, 'index.html')) : undefined;
   app.setNotFoundHandler((req, reply) => {
-    if (webDist && req.method === 'GET' && !req.url.startsWith('/api/'))
-      return reply.sendFile('index.html');
+    const path = req.url.split('?')[0] ?? '';
+    const isApi = path === '/api' || path.startsWith('/api/');
+    if (indexHtml && req.method === 'GET' && !isApi)
+      return reply
+        .type('text/html; charset=utf-8')
+        .header('cache-control', 'no-cache')
+        .send(indexHtml);
     return reply.status(404).send({ code: 'not_found', message: 'Route not found' });
   });
 
