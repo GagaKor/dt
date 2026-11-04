@@ -15,6 +15,9 @@ import { registerAuth } from './auth/session.js';
 import { HttpError } from './errors.js';
 import { KeyedMutex } from './lib/keyedMutex.js';
 import { DeviceDirectory } from './devices/directory.js';
+import { registerAlarmRoutes } from './alarms/routes.js';
+import { EventService } from './ingest/eventService.js';
+import { registerEventRoutes } from './ingest/eventRoutes.js';
 import { registerDeviceRoutes } from './devices/routes.js';
 import { KeyAuthenticator } from './keys/keyAuth.js';
 import { registerKeyRoutes } from './keys/routes.js';
@@ -31,6 +34,7 @@ export interface AppDeps {
 declare module 'fastify' {
   interface FastifyInstance {
     deviceDirectory: DeviceDirectory;
+    eventService: EventService;
   }
 }
 
@@ -76,10 +80,23 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
 
   const deviceDirectory = new DeviceDirectory(deps.db);
   app.decorate('deviceDirectory', deviceDirectory);
-  await registerSiteRoutes(app, deps, new KeyedMutex(), deviceDirectory);
+  const mutex = new KeyedMutex();
+  await registerSiteRoutes(app, deps, mutex, deviceDirectory);
   await registerDeviceRoutes(app, deps, deviceDirectory);
 
   await registerKeyRoutes(app, deps, new KeyAuthenticator(deps.db));
+
+  const eventService = new EventService({
+    db: deps.db,
+    devices: deviceDirectory,
+    mutex,
+    objects: { upsert: () => undefined },
+    publisher: { alarmChanged: () => undefined },
+    clock: deps.clock,
+  });
+  app.decorate('eventService', eventService);
+  await registerEventRoutes(app, eventService);
+  await registerAlarmRoutes(app, deps, eventService);
 
   const typed = app.withTypeProvider<ZodTypeProvider>();
   typed.get(
