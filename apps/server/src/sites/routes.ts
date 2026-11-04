@@ -5,6 +5,7 @@ import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import type { AppDeps } from '../app.js';
+import type { KeyedMutex } from '../lib/keyedMutex.js';
 import { sites } from '../db/schema.js';
 import { HttpError } from '../errors.js';
 import { ModelError, processModel } from '../models/processModel.js';
@@ -20,7 +21,11 @@ import {
 const params = z.object({ siteId: z.uuid() });
 const tooLarge = (max: number) => new HttpError(413, 'model_too_large', `Model exceeds ${max} MB`);
 
-export async function registerSiteRoutes(app: FastifyInstance, deps: AppDeps): Promise<void> {
+export async function registerSiteRoutes(
+  app: FastifyInstance,
+  deps: AppDeps,
+  mutex: KeyedMutex,
+): Promise<void> {
   const { db, storage, config } = deps;
   const maxBytes = config.MAX_MODEL_MB * 1024 * 1024;
   await app.register(multipart, { limits: { fileSize: maxBytes, files: 1 } });
@@ -77,15 +82,17 @@ export async function registerSiteRoutes(app: FastifyInstance, deps: AppDeps): P
     '/api/sites/:siteId',
     { preHandler, schema: { params, response: { 204: z.null() } } },
     async (req, reply) => {
-      const [row] = await db.delete(sites).where(eq(sites.id, req.params.siteId)).returning();
-      if (!row) throw new HttpError(404, 'site_not_found', 'Site not found');
-      if (row.modelKey) {
-        try {
-          await storage.delete(row.modelKey);
-        } catch (err) {
-          req.log.warn({ err, key: row.modelKey }, 'failed to delete model object');
+      await mutex.run(`site:${req.params.siteId}`, async () => {
+        const [row] = await db.delete(sites).where(eq(sites.id, req.params.siteId)).returning();
+        if (!row) throw new HttpError(404, 'site_not_found', 'Site not found');
+        if (row.modelKey) {
+          try {
+            await storage.delete(row.modelKey);
+          } catch (err) {
+            req.log.warn({ err, key: row.modelKey }, 'failed to delete model object');
+          }
         }
-      }
+      });
       return reply.status(204).send(null);
     },
   );
@@ -95,7 +102,7 @@ export async function registerSiteRoutes(app: FastifyInstance, deps: AppDeps): P
     { preHandler, schema: { params, response: { 200: ModelUploadResultSchema } } },
     async (req) => {
       const { siteId } = req.params;
-      const site = await getSiteRow(db, siteId);
+      await getSiteRow(db, siteId);
 
       let input: Buffer;
       try {
@@ -117,21 +124,28 @@ export async function registerSiteRoutes(app: FastifyInstance, deps: AppDeps): P
         throw err;
       }
 
-      const nextVersion = (site.modelVersion ?? 0) + 1;
-      const key = modelKeyFor(siteId, nextVersion);
-      await storage.put(key, processed.glb, 'model/gltf-binary');
-      const updated = await commitModelVersion(db, siteId, site.modelVersion, key);
-      if (!updated) {
-        await storage.delete(key).catch(() => undefined);
-        throw new HttpError(409, 'model_conflict', 'Model was changed concurrently, retry');
-      }
-      if (site.modelKey) {
-        try {
-          await storage.delete(site.modelKey);
-        } catch (err) {
-          req.log.warn({ err, key: site.modelKey }, 'failed to delete previous model object');
+      const updated = await mutex.run(`site:${siteId}`, async () => {
+        const current = await getSiteRow(db, siteId);
+        const key = modelKeyFor(siteId, (current.modelVersion ?? 0) + 1);
+        await storage.put(key, processed.glb, 'model/gltf-binary');
+        const row = await commitModelVersion(db, siteId, current.modelVersion, key);
+        if (!row) {
+          const [still] = await db.select({ id: sites.id }).from(sites).where(eq(sites.id, siteId));
+          if (!still) {
+            await storage.delete(key).catch(() => undefined);
+            throw new HttpError(404, 'site_not_found', 'Site not found');
+          }
+          throw new HttpError(409, 'model_conflict', 'Model was changed concurrently, retry');
         }
-      }
+        if (current.modelKey) {
+          try {
+            await storage.delete(current.modelKey);
+          } catch (err) {
+            req.log.warn({ err, key: current.modelKey }, 'failed to delete previous model object');
+          }
+        }
+        return row;
+      });
       return {
         site: toSite(updated),
         floorSuggestion: processed.floorSuggestion,

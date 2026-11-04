@@ -13,6 +13,7 @@ import type { Config } from './config.js';
 import type { Db } from './db/client.js';
 import { registerAuth } from './auth/session.js';
 import { HttpError } from './errors.js';
+import { KeyedMutex } from './lib/keyedMutex.js';
 import { registerSiteRoutes } from './sites/routes.js';
 import type { ObjectStorage } from './storage/types.js';
 
@@ -63,7 +64,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
 
   await registerAuth(app, deps);
 
-  await registerSiteRoutes(app, deps);
+  await registerSiteRoutes(app, deps, new KeyedMutex());
 
   const typed = app.withTypeProvider<ZodTypeProvider>();
   typed.get(

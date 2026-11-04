@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { eq } from 'drizzle-orm';
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
-import { devices, floors } from '../src/db/schema.js';
+import { devices, floors, sites } from '../src/db/schema.js';
 import { createTestApp, loginCookie, repoPath, type TestApp } from './helpers.js';
 
 const BOUNDARY = 'dtboundary';
@@ -85,6 +85,32 @@ describe('sites', () => {
     expect(res.json().site.modelVersion).toBe(2);
     await expect(t.deps.storage.get(`sites/${site.id}/model-v1.glb`)).rejects.toThrow();
     await expect(t.deps.storage.get(`sites/${site.id}/model-v2.glb`)).resolves.toBeDefined();
+  });
+
+  test('concurrent uploads keep the committed model readable', async () => {
+    const site = await createSite();
+    const buf = await sample();
+    await Promise.all([upload(site.id, buf), upload(site.id, buf)]);
+    const [row] = await t.deps.db.select().from(sites).where(eq(sites.id, site.id));
+    expect(row?.modelVersion).toBe(2);
+    const stream = await t.deps.storage.get(`sites/${site.id}/model-v2.glb`);
+    const chunks: Buffer[] = [];
+    for await (const c of stream) chunks.push(c as Buffer);
+    expect(Buffer.concat(chunks).subarray(0, 4).toString()).toBe('glTF');
+    await expect(t.deps.storage.get(`sites/${site.id}/model-v1.glb`)).rejects.toThrow();
+  });
+
+  test('upload to a site deleted meanwhile returns 404', async () => {
+    const site = await createSite();
+    const realPut = t.deps.storage.put.bind(t.deps.storage);
+    t.deps.storage.put = async (...args) => {
+      await t.deps.db.delete(sites).where(eq(sites.id, site.id));
+      await realPut(...args);
+    };
+    const res = await upload(site.id, await sample());
+    expect(res.statusCode).toBe(404);
+    expect(res.json().code).toBe('site_not_found');
+    await expect(t.deps.storage.get(`sites/${site.id}/model-v1.glb`)).rejects.toThrow();
   });
 
   test('garbage upload → 422 not_glb', async () => {
