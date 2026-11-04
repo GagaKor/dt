@@ -1,9 +1,11 @@
 import type { Floor } from '@dt/shared';
 import { Raycaster, Vector3, type Object3D } from 'three';
 import { floorVisibleBand } from './floorClipping';
-import { pickFloorHit } from './pickFloorHit';
 
 const CELL_M = 0.5;
+// Surfaces up to this far above elevationMin (steps, raised floors) count as the floor;
+// anything higher (desks, shelves, ducts) is skipped.
+const FLOOR_STEP_TOLERANCE_M = 0.5;
 const DOWN = new Vector3(0, -1, 0);
 
 export type FloorSurfaceResolver = (floorId: string, x: number, y: number) => number;
@@ -26,10 +28,14 @@ export function createFloorSurfaceResolver(root: Object3D, floors: Floor[]): Flo
     if (cached !== undefined) return cached;
 
     const { lo, hi } = floorVisibleBand(floor);
+    const top = floor.elevationMin + FLOOR_STEP_TOLERANCE_M;
     origin.set(cx * CELL_M, hi, -cy * CELL_M);
     raycaster.set(origin, DOWN);
     raycaster.far = hi - lo + 1e-3;
-    const hit = pickFloorHit(raycaster.intersectObject(root, true), floor);
+    // Hits come sorted top-down, so the highest surface inside the step window wins.
+    const hit = raycaster
+      .intersectObject(root, true)
+      .find((h) => h.point.y >= lo && h.point.y <= top);
     const surface = hit ? hit.point.y : floor.elevationMin;
     cache.set(key, surface);
     return surface;

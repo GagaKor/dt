@@ -1,7 +1,8 @@
 import type { Floor } from '@dt/shared';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useLayoutEffect, useMemo } from 'react';
 import { Mesh, MeshStandardMaterial, type Material, type Object3D, type Plane } from 'three';
 import { floorClipPlanes } from './floorClipping';
+import { isModelReleased, retainModel } from './modelLifetime';
 
 export interface ModelLayersProps {
   scene: Object3D | null;
@@ -75,7 +76,9 @@ function buildLayers(scene: Object3D, elevationMin: number, elevationMax: number
   };
 }
 
-export function ModelLayers({ scene, floors, selectedFloorId }: ModelLayersProps) {
+export function ModelLayers({ scene: source, floors, selectedFloorId }: ModelLayersProps) {
+  // A released scene may already be disposed; drawing it would re-upload its buffers.
+  const scene = source && !isModelReleased(source) ? source : null;
   const floor = floors.find((f) => f.id === selectedFloorId) ?? null;
   // Keyed on the range values so a refetched, unchanged floor list keeps the clones.
   const min = floor?.elevationMin;
@@ -84,6 +87,9 @@ export function ModelLayers({ scene, floors, selectedFloorId }: ModelLayersProps
     () => (scene && min !== undefined && max !== undefined ? buildLayers(scene, min, max) : null),
     [scene, min, max],
   );
+  // Layout effects run inside this root's commit, so the hold matches exactly whether the
+  // canvas tree contains the scene (or clones sharing its buffers).
+  useLayoutEffect(() => (scene ? retainModel(scene) : undefined), [scene]);
   useEffect(() => () => layers?.dispose(), [layers]);
 
   if (!scene) return null;
