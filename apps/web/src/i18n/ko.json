@@ -101,6 +101,7 @@
     "plaintextHint": "지금 키를 복사하세요. 다시 볼 수 없습니다.",
     "copy": "복사",
     "copied": "복사됨",
+    "copyManually": "여기서는 자동 복사를 쓸 수 없습니다. 키를 선택해 두었으니 Ctrl+C(Mac은 Cmd+C)를 눌러 복사하세요.",
     "defaultSeverity": "기본 심각도",
     "revoke": "폐기",
     "revoked": "폐기됨",

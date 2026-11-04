@@ -101,6 +101,7 @@
     "plaintextHint": "Copy this key now. It will not be shown again.",
     "copy": "Copy",
     "copied": "Copied",
+    "copyManually": "Automatic copy is not available here. The key is selected: press Ctrl+C (Cmd+C on a Mac) to copy it.",
     "defaultSeverity": "Default severity",
     "revoke": "Revoke",
     "revoked": "Revoked",

@@ -17,6 +17,8 @@ export function KeysPage() {
   const [name, setName] = useState('');
   const [plaintext, setPlaintext] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [copyManually, setCopyManually] = useState(false);
+  const plaintextRef = useRef<HTMLElement>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
 
   // Not a react-query mutation: its data would keep the plaintext in the mutation cache.
@@ -33,6 +35,7 @@ export function KeysPage() {
       });
       setName('');
       setCopied(false);
+      setCopyManually(false);
       setPlaintext(k.key);
       await qc.invalidateQueries({ queryKey: ['integration-keys'] });
     } catch {
@@ -53,12 +56,26 @@ export function KeysPage() {
     d.focus();
   }, [plaintext !== null]);
 
+  const selectPlaintext = () => {
+    const el = plaintextRef.current;
+    const selection = window.getSelection();
+    if (!el || !selection) return;
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    selection.removeAllRanges();
+    selection.addRange(range);
+  };
+
   const copy = async () => {
     try {
+      // navigator.clipboard exists only in secure contexts (HTTPS or localhost).
+      if (!navigator.clipboard) throw new Error('clipboard unavailable');
       await navigator.clipboard.writeText(plaintext ?? '');
       setCopied(true);
     } catch {
       setCopied(false);
+      setCopyManually(true);
+      selectPlaintext();
     }
   };
 
@@ -104,11 +121,17 @@ export function KeysPage() {
         >
           <p className="mb-2 text-sm">{t('keys.plaintextHint')}</p>
           <code
+            ref={plaintextRef}
             data-testid="key-plaintext"
             className="block break-all rounded bg-white p-2 dark:bg-slate-900"
           >
             {plaintext}
           </code>
+          {copyManually && (
+            <p role="status" className="mt-2 text-sm">
+              {t('keys.copyManually')}
+            </p>
+          )}
           <div className="mt-3 flex gap-2">
             <button
               type="button"
