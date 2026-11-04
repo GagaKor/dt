@@ -27,6 +27,10 @@ export class S3Storage implements ObjectStorage {
       region: o.region,
       forcePathStyle: o.forcePathStyle,
       credentials: { accessKeyId: o.accessKeyId, secretAccessKey: o.secretAccessKey },
+      // The SDK's default CRC checksums are rejected by some S3-compatible services
+      // (older MinIO, GCS interoperability).
+      requestChecksumCalculation: 'WHEN_REQUIRED',
+      responseChecksumValidation: 'WHEN_REQUIRED',
     });
   }
 
