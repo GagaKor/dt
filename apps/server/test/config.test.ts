@@ -42,3 +42,20 @@ test('parses booleans and numbers from strings', () => {
   expect(c.MAX_MODEL_MB).toBe(10);
   expect(loadConfig({ ...base, S3_FORCE_PATH_STYLE: 'false' }).S3_FORCE_PATH_STYLE).toBe(false);
 });
+
+test('rejects the placeholder secrets from older .env.example files', () => {
+  expect(() => loadConfig({ ...base, ADMIN_PASSWORD: 'change-me-please' })).toThrow(
+    /ADMIN_PASSWORD: .*placeholder/,
+  );
+  expect(() =>
+    loadConfig({
+      ...base,
+      SESSION_SECRET: 'replace-this-placeholder-with-32-or-more-random-chars',
+    }),
+  ).toThrow(/SESSION_SECRET: .*placeholder.*openssl rand/);
+});
+
+test('empty secrets name the variable', () => {
+  expect(() => loadConfig({ ...base, ADMIN_PASSWORD: '' })).toThrow(/ADMIN_PASSWORD/);
+  expect(() => loadConfig({ ...base, SESSION_SECRET: '' })).toThrow(/SESSION_SECRET/);
+});

@@ -5,6 +5,18 @@ const bool = z.enum(['true', 'false', '1', '0']).transform((v) => v === 'true' |
 const optional = <T extends z.ZodType>(schema: T) =>
   z.preprocess((v) => (v === '' ? undefined : v), schema.optional());
 
+// Example values once shipped in .env.example. They are public, so a server using them
+// would accept session cookies forged by anyone.
+const PLACEHOLDERS = new Set([
+  'change-me-please',
+  'replace-this-placeholder-with-32-or-more-random-chars',
+]);
+const secret = (minLength: number, hint: string) =>
+  z
+    .string()
+    .min(minLength)
+    .refine((v) => !PLACEHOLDERS.has(v), `is a public placeholder from .env.example; ${hint}`);
+
 const schema = z
   .object({
     PORT: z.coerce.number().int().min(1).max(65535).default(8080),
@@ -21,8 +33,8 @@ const schema = z
     S3_SECRET_ACCESS_KEY: optional(z.string()),
     S3_FORCE_PATH_STYLE: optional(bool),
     ADMIN_USERNAME: z.string().min(1).default('admin'),
-    ADMIN_PASSWORD: z.string().min(8),
-    SESSION_SECRET: z.string().min(32),
+    ADMIN_PASSWORD: secret(8, 'set your own password'),
+    SESSION_SECRET: secret(32, 'set a random value, e.g. from `openssl rand -base64 48`'),
     MAX_MODEL_MB: z.coerce.number().positive().default(500),
     MIGRATIONS_DIR: optional(z.string()),
     WEB_DIST_DIR: optional(z.string()),

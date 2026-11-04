@@ -24,7 +24,7 @@ dt는 Docker 이미지 하나(화면 정적 파일 + API 서버)와 PostgreSQL�
 | `S3_FORCE_PATH_STYLE` | 없음 | `true`면 path-style 주소를 쓴다. MinIO 같은 자체 호스팅 서비스는 대개 `true`, AWS S3는 `false` |
 | `ADMIN_USERNAME` | `admin` | 관리자 아이디 |
 | `ADMIN_PASSWORD` | 없음(필수) | 관리자 비밀번호. 8자 이상 |
-| `SESSION_SECRET` | 없음(필수) | 세션 서명 비밀값. 32자 이상. `openssl rand -hex 32` 같은 무작위 값 |
+| `SESSION_SECRET` | 없음(필수) | 세션 서명 비밀값. 32자 이상. `openssl rand -base64 48` 같은 무작위 값 |
 | `MAX_MODEL_MB` | `500` | 모델 업로드 최대 크기(MB) |
 | `MIGRATIONS_DIR` | 없음 | 마이그레이션 폴더. Docker 이미지가 `/app/drizzle`로 설정한다 |
 | `WEB_DIST_DIR` | 없음 | 서빙할 화면 빌드 폴더. Docker 이미지가 `/app/web`으로 설정한다 |
@@ -33,11 +33,13 @@ dt는 Docker 이미지 하나(화면 정적 파일 + API 서버)와 PostgreSQL�
 
 비밀값(`ADMIN_PASSWORD`, `SESSION_SECRET`, `S3_SECRET_ACCESS_KEY`)은 `.env`에만 두고 커밋하지 않는다. `.env`는 `.gitignore`에 들어 있다.
 
+`.env.example`의 `ADMIN_PASSWORD`, `SESSION_SECRET`은 일부러 비워 두었다. 비어 있거나 예전 `.env.example`의 예시 값이면 서버가 변수 이름을 알려 주고 시작하지 않는다. 예시 값은 공개돼 있어서 그대로 쓰면 누구나 관리자 세션 쿠키를 위조할 수 있기 때문이다.
+
 ## 2. 온프레미스 (Docker Compose)
 
 ```bash
 cp .env.example .env
-# ADMIN_PASSWORD, SESSION_SECRET을 바꾼다
+# ADMIN_PASSWORD, SESSION_SECRET을 정한다. 비밀값 만들기: openssl rand -base64 48
 docker compose up -d
 ```
 

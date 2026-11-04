@@ -23,9 +23,12 @@ Requires Docker with Compose.
 
 ```bash
 cp .env.example .env
-# edit .env: set ADMIN_PASSWORD (8+ chars) and SESSION_SECRET (32+ random chars, e.g. `openssl rand -hex 32`)
+# edit .env: set ADMIN_PASSWORD (8+ chars) and SESSION_SECRET (32+ random chars)
+openssl rand -base64 48   # prints a value you can use as SESSION_SECRET
 docker compose up -d
 ```
+
+The server refuses to start while either value is empty or still an example value.
 
 Open <http://localhost:8080> and log in with `ADMIN_USERNAME` (default `admin`) and your `ADMIN_PASSWORD`.
 
@@ -92,6 +95,7 @@ Requires Node.js 22 or later (CI and the Docker image use 24) and pnpm 12 via co
 corepack enable
 pnpm install
 cp .env.example .env     # DB_DRIVER=pglite and local storage work without Docker
+# set ADMIN_PASSWORD and SESSION_SECRET in .env (openssl rand -base64 48)
 pnpm dev                 # API on :8080, web (Vite) with an /api proxy
 pnpm test                # unit and integration tests
 pnpm e2e                 # Playwright end-to-end test (port override: E2E_PORT=18081)

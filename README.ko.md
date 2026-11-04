@@ -23,9 +23,12 @@ Docker와 Compose가 필요하다.
 
 ```bash
 cp .env.example .env
-# .env 수정: ADMIN_PASSWORD(8자 이상), SESSION_SECRET(32자 이상 무작위 값, 예: `openssl rand -hex 32`)
+# .env 수정: ADMIN_PASSWORD(8자 이상), SESSION_SECRET(32자 이상 무작위 값)
+openssl rand -base64 48   # SESSION_SECRET으로 쓸 값을 출력한다
 docker compose up -d
 ```
+
+두 값 중 하나라도 비어 있거나 예시 값이면 서버가 시작하지 않는다.
 
 <http://localhost:8080>을 열고 `ADMIN_USERNAME`(기본 `admin`)과 `ADMIN_PASSWORD`로 로그인한다.
 
@@ -90,6 +93,7 @@ Node.js 22 이상(CI와 Docker 이미지는 24)과 corepack으로 쓰는 pnpm 12
 corepack enable
 pnpm install
 cp .env.example .env     # DB_DRIVER=pglite와 로컬 저장소는 Docker 없이 동작한다
+# .env에 ADMIN_PASSWORD와 SESSION_SECRET을 정한다 (openssl rand -base64 48)
 pnpm dev                 # API는 :8080, 화면(Vite)은 /api 프록시 포함
 pnpm test                # 단위·통합 테스트
 pnpm e2e                 # Playwright E2E (포트 변경: E2E_PORT=18081)
