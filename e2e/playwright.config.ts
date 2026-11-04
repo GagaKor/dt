@@ -1,4 +1,3 @@
-import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -6,10 +5,12 @@ import { defineConfig } from '@playwright/test';
 
 const root = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const port = Number(process.env.E2E_PORT ?? 18080);
-const storageDir = mkdtempSync(join(tmpdir(), 'dt-e2e-storage-'));
+// Fixed path: loading the config has no side effects, and global teardown removes it.
+const storageDir = join(tmpdir(), `dt-e2e-storage-${port}`);
 
 export default defineConfig({
   testDir: '.',
+  globalTeardown: './teardown.ts',
   testMatch: '*.spec.ts',
   outputDir: join(root, 'test-results'),
   workers: 1,
@@ -24,8 +25,7 @@ export default defineConfig({
     launchOptions: { args: ['--enable-unsafe-swiftshader', '--use-angle=swiftshader'] },
   },
   webServer: {
-    command:
-      'pnpm --filter @dt/web build && pnpm --filter @dt/server build && node apps/server/dist/main.js',
+    command: `rm -rf "${storageDir}" && pnpm --filter @dt/web build && pnpm --filter @dt/server build && node apps/server/dist/main.js`,
     cwd: root,
     url: `http://127.0.0.1:${port}/api/health`,
     reuseExistingServer: false,

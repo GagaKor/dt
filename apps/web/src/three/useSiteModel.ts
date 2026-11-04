@@ -12,6 +12,13 @@ export interface SiteModel {
   error: Error | null;
 }
 
+export type ModelState = 'loading' | 'ready' | 'error';
+
+/** Observable load state for the canvas wrapper; `ready` once the scene can be drawn. */
+export function modelStateOf(model: Pick<SiteModel, 'scene' | 'error'>): ModelState {
+  return model.error ? 'error' : model.scene ? 'ready' : 'loading';
+}
+
 const EMPTY: SiteModel = { scene: null, bounds: null, error: null };
 const NO_STATE = { ...EMPTY, key: null };
 

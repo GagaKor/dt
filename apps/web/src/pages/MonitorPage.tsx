@@ -16,7 +16,7 @@ import { createFloorYResolver } from '../three/floorSurface';
 import { ModelLayers } from '../three/ModelLayers';
 import { ObjectMarkers } from '../three/ObjectMarkers';
 import { SiteCanvas } from '../three/SiteCanvas';
-import { useSiteModel } from '../three/useSiteModel';
+import { useSiteModel, modelStateOf } from '../three/useSiteModel';
 
 const NO_ALARMS = new Map<string, Alarm>();
 
@@ -63,7 +63,7 @@ export function MonitorPage() {
             <p className="p-6 text-sm text-slate-500">{t('monitor.noModel')}</p>
           ) : (
             <>
-              <SiteCanvas bounds={model.bounds}>
+              <SiteCanvas bounds={model.bounds} modelState={modelStateOf(model)}>
                 <ModelLayers
                   scene={model.scene}
                   floors={floorList}

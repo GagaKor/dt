@@ -1,7 +1,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import type { Group } from 'three';
 import { beforeEach, expect, test, vi } from 'vitest';
-import { useSiteModel } from './useSiteModel';
+import { modelStateOf, useSiteModel } from './useSiteModel';
 
 const h = vi.hoisted(() => ({
   apiFetchBytes: vi.fn(),
@@ -85,4 +85,10 @@ test('a scene that arrives after unmount is disposed', async () => {
   await act(async () => resolve(new ArrayBuffer(0)));
   await waitFor(() => expect(h.parsed).toHaveLength(1));
   expect(disposals(h.parsed[0]!)).toBe(1);
+});
+
+test('modelStateOf maps scene and error to loading, ready and error', () => {
+  expect(modelStateOf({ scene: null, error: null })).toBe('loading');
+  expect(modelStateOf({ scene: {} as Group, error: null })).toBe('ready');
+  expect(modelStateOf({ scene: null, error: new Error('x') })).toBe('error');
 });

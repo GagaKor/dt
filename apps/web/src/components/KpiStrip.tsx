@@ -65,6 +65,8 @@ export function KpiStrip({ siteId }: KpiStripProps) {
       <Metric label={t('monitor.kpi.objects')} value={visible} testId="kpi-objects" />
       <span
         role="status"
+        data-testid="realtime-status"
+        data-state={status}
         className="ml-auto flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300"
       >
         <span aria-hidden className={`h-2 w-2 rounded-full ${STATUS_DOT[status]}`} />

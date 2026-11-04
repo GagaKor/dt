@@ -3,10 +3,13 @@ import { Canvas, useThree } from '@react-three/fiber';
 import { useEffect, type ReactNode } from 'react';
 import type { Box3 } from 'three';
 import { useViewStore } from '../state/viewStore';
+import type { ModelState } from './useSiteModel';
 import { VIEW_FOV_DEG, obliqueView, type ViewPose } from './viewPresets';
 
 export interface SiteCanvasProps {
   bounds: Box3 | null;
+  /** Exposed as `data-model-state` so tests can wait for the model. */
+  modelState?: ModelState;
   children?: ReactNode;
 }
 
@@ -33,10 +36,11 @@ function ViewDriver({ bounds }: { bounds: Box3 | null }) {
   return null;
 }
 
-export function SiteCanvas({ bounds, children }: SiteCanvasProps) {
+export function SiteCanvas({ bounds, modelState, children }: SiteCanvasProps) {
   return (
     <Canvas
       data-testid="canvas-3d"
+      data-model-state={modelState}
       className="bg-slate-100 dark:bg-slate-900"
       camera={{ fov: VIEW_FOV_DEG, near: 0.1, far: 10_000, position: [30, 30, 30] }}
       dpr={[1, 2]}

@@ -57,16 +57,11 @@ test('success criteria: model to acknowledged alarm on the dashboard', async ({
     await page.getByTestId('view-top').click();
     await page.getByTestId('tool-place-camera').click();
     const canvas = page.getByTestId('canvas-3d');
-    await expect(canvas).toBeVisible();
+    await expect(canvas).toHaveAttribute('data-model-state', 'ready');
     await expect(page.getByTestId('view-top')).toBeEnabled();
     const box = (await canvas.boundingBox())!;
-    const cx = box.x + box.width / 2;
-    const cy = box.y + box.height / 2;
-    // The model may still be loading or the camera flying; retry the click until the form opens.
-    await expect(async () => {
-      await page.mouse.click(cx, cy);
-      await expect(page.getByTestId('device-form-id')).toBeVisible({ timeout: 1_500 });
-    }).toPass({ timeout: 30_000 });
+    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+    await expect(page.getByTestId('device-form-id')).toBeVisible();
     await page.getByTestId('device-form-id').fill('cam-e2e-1');
     await page.getByTestId('device-form-yaw').fill('90');
     await page.getByTestId('device-form-save').click();
@@ -89,7 +84,17 @@ test('success criteria: model to acknowledged alarm on the dashboard', async ({
 
   await test.step('first event raises an alarm', async () => {
     await page.getByRole('link', { name: /monitor/i }).click();
-    await expect(page.getByTestId('kpi-unacked')).toBeVisible();
+    await expect(page.getByTestId('realtime-status')).toHaveAttribute('data-state', 'open');
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () =>
+            (
+              window as unknown as { __dtStore: { getState(): { siteId: string | null } } }
+            ).__dtStore.getState().siteId,
+        ),
+      )
+      .not.toBeNull();
     const res = await request.post('/api/ingest/events', {
       headers: { Authorization: `Bearer ${key}` },
       data: event(),
@@ -136,7 +141,6 @@ test('success criteria: model to acknowledged alarm on the dashboard', async ({
     await page.getByRole('link', { name: /dashboard/i }).click();
     await expect(page.getByTestId('stats-timeseries-total')).toHaveText('1');
     const byType = page.getByTestId('stats-bytype');
-    await expect(byType).toContainText('intrusion');
-    await expect(byType).toContainText('1');
+    await expect(byType.getByRole('listitem').filter({ hasText: 'intrusion' })).toContainText('1');
   });
 });

@@ -25,7 +25,7 @@ import { DeviceMarkers } from '../../three/DeviceMarkers';
 import { FloorSelector } from '../../three/FloorSelector';
 import { ModelLayers } from '../../three/ModelLayers';
 import { SiteCanvas } from '../../three/SiteCanvas';
-import { useSiteModel } from '../../three/useSiteModel';
+import { useSiteModel, modelStateOf } from '../../three/useSiteModel';
 import { focusView, obliqueView, topView, type ViewPose } from '../../three/viewPresets';
 import {
   createBody,
@@ -300,7 +300,7 @@ export function DeviceEditorPage() {
             <p className="p-4 text-sm text-slate-500">{t('devices.noModel')}</p>
           ) : (
             <>
-              <SiteCanvas bounds={model.bounds}>
+              <SiteCanvas bounds={model.bounds} modelState={modelStateOf(model)}>
                 <group onClick={placing ? onPlaceClick : undefined}>
                   <ModelLayers
                     scene={model.scene}
