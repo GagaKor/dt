@@ -17,7 +17,7 @@ export default defineConfig({
   retries: 0,
   timeout: 120_000,
   expect: { timeout: 15_000 },
-  reporter: [['list'], ['html', { outputFolder: 'playwright-report', open: 'never' }]],
+  reporter: [['list'], ['html', { outputFolder: join(root, 'playwright-report'), open: 'never' }]],
   use: {
     baseURL: `http://127.0.0.1:${port}`,
     viewport: { width: 1440, height: 900 },
