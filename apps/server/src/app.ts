@@ -27,6 +27,7 @@ import { registerDeviceRoutes } from './devices/routes.js';
 import { KeyAuthenticator } from './keys/keyAuth.js';
 import { registerKeyRoutes } from './keys/routes.js';
 import { registerSiteRoutes } from './sites/routes.js';
+import { registerStatsRoutes } from './stats/routes.js';
 import type { ObjectStorage } from './storage/types.js';
 
 export interface AppDeps {
@@ -124,6 +125,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   await registerPositionRoutes(app, deps.clock);
   await registerAlarmRoutes(app, deps, eventService);
   await registerRealtimeRoutes(app, deps, hub);
+  await registerStatsRoutes(app, deps);
 
   const typed = app.withTypeProvider<ZodTypeProvider>();
   typed.get(
