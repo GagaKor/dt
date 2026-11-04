@@ -7,7 +7,7 @@ import {
 } from '@gltf-transform/extensions';
 import draco3d from 'draco3dgltf';
 import { MeshoptDecoder } from 'meshoptimizer';
-import { expect, test } from 'vitest';
+import { expect, test, vi } from 'vitest';
 import { ModelError, processModel } from '../src/models/processModel.js';
 import { repoPath } from './helpers.js';
 
@@ -159,4 +159,16 @@ test('tiny single box falls back to one floor and warns', async () => {
   const r = await processModel(await singleBox(1));
   expect(r.floorSuggestion).toHaveLength(1);
   expect(r.warnings).toContain('units_suspect_too_small');
+});
+
+test('processing a model prints nothing below warnings to the console', async () => {
+  const spies = (['log', 'info', 'debug'] as const).map((m) =>
+    vi.spyOn(console, m).mockImplementation(() => undefined),
+  );
+  try {
+    await processModel(await sample());
+    for (const spy of spies) expect(spy).not.toHaveBeenCalled();
+  } finally {
+    for (const spy of spies) spy.mockRestore();
+  }
 });

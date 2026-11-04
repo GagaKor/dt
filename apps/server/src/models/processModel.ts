@@ -1,4 +1,4 @@
-import { NodeIO } from '@gltf-transform/core';
+import { Logger, NodeIO } from '@gltf-transform/core';
 import { ALL_EXTENSIONS, KHRDracoMeshCompression } from '@gltf-transform/extensions';
 import { dedup, getBounds, meshopt, weld } from '@gltf-transform/functions';
 import type { FloorRange, ModelWarning } from '@dt/shared';
@@ -44,11 +44,14 @@ let ioPromise: Promise<NodeIO> | undefined;
 function getIo(): Promise<NodeIO> {
   ioPromise ??= (async () => {
     await Promise.all([MeshoptDecoder.ready, MeshoptEncoder.ready]);
-    return new NodeIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({
-      'draco3d.decoder': await draco3d.createDecoderModule(),
-      'meshopt.decoder': MeshoptDecoder,
-      'meshopt.encoder': MeshoptEncoder,
-    });
+    return new NodeIO()
+      .setLogger(new Logger(Logger.Verbosity.WARN))
+      .registerExtensions(ALL_EXTENSIONS)
+      .registerDependencies({
+        'draco3d.decoder': await draco3d.createDecoderModule(),
+        'meshopt.decoder': MeshoptDecoder,
+        'meshopt.encoder': MeshoptEncoder,
+      });
   })();
   return ioPromise;
 }
