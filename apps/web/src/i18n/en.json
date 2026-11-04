@@ -125,6 +125,7 @@
     },
     "selectFloorHint": "Select a floor to place devices.",
     "placeHint": "Click the model to place the device.",
+    "unsavedHint": "Save or close the device you are editing first.",
     "noModel": "Upload a 3D model in the site settings before placing devices.",
     "newDevice": "New device",
     "editDevice": "Edit device",

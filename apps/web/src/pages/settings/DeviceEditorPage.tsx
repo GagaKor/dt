@@ -1,4 +1,4 @@
-import type { Device, DeviceCreate, DevicePatch, DeviceType, FloorRange } from '@dt/shared';
+import type { Device, DeviceCreate, DeviceType, FloorRange } from '@dt/shared';
 import { TransformControls } from '@react-three/drei';
 import type { ThreeEvent } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
@@ -14,9 +14,6 @@ import {
   useSites,
 } from '../../api/queries';
 import {
-  DEFAULT_HFOV_DEG,
-  DEFAULT_RANGE_M,
-  DEVICE_LIMITS,
   DeviceForm,
   apiErrorToFormErrors,
   type DeviceFormErrors,
@@ -24,78 +21,33 @@ import {
 import { DeviceList } from '../../components/DeviceList';
 import { useViewStore } from '../../state/viewStore';
 import { CoordinateReadout } from '../../three/CoordinateReadout';
-import { CLICK_SLOP_PX, DeviceMarkers } from '../../three/DeviceMarkers';
-import { placementPosition, yawPitchFromQuaternion } from '../../three/devicePose';
+import { DeviceMarkers } from '../../three/DeviceMarkers';
 import { FloorSelector } from '../../three/FloorSelector';
 import { ModelLayers } from '../../three/ModelLayers';
-import { pickFloorHit } from '../../three/pickFloorHit';
 import { SiteCanvas } from '../../three/SiteCanvas';
 import { useSiteModel } from '../../three/useSiteModel';
 import { obliqueView, topView, type ViewPose } from '../../three/viewPresets';
+import {
+  createBody,
+  draftAfterGizmo,
+  editingAfterSave,
+  editingKey,
+  isGizmoEcho,
+  isPlacementClick,
+  markersFor,
+  nextEditingOnPlace,
+  nextEditingOnSelect,
+  patchBody,
+  pickPlacement,
+  type Editing,
+  type Position,
+  type Transition,
+} from './deviceEditorLogic';
 
 type Tool = 'select' | DeviceType;
 type GizmoMode = 'translate' | 'rotate';
-type Position = Device['position'];
 
-interface Editing {
-  draft: DeviceCreate;
-  isNew: boolean;
-}
-
-// '#' is not allowed in device ids, so the unsaved device never collides with a saved one.
-const NEW_DEVICE_KEY = '#new';
-// A short click on a gizmo handle also reaches the model behind it as a click.
-const GIZMO_CLICK_GUARD_MS = 300;
 const FOCUS_BOX = new Vector3(12, 4, 12);
-
-const round = (v: number, digits: number) => {
-  const f = 10 ** digits;
-  return Math.round(v * f) / f;
-};
-const roundPosition = (v: Vector3): Position => [round(v.x, 3), round(v.y, 3), round(v.z, 3)];
-const finite = (v: number | null | undefined, fallback: number) =>
-  typeof v === 'number' && Number.isFinite(v) ? v : fallback;
-const clamp = (v: number, { min, max }: { min: number; max: number }) =>
-  Math.min(max, Math.max(min, v));
-
-/** What the 3D view draws for a draft, which may hold values the form still flags. */
-function previewDevice(d: DeviceCreate, id: string): Device {
-  const camera = d.type === 'camera';
-  return {
-    id,
-    siteId: d.siteId,
-    floorId: d.floorId,
-    type: d.type,
-    name: d.name,
-    position: d.position,
-    yawDeg: finite(d.yawDeg, 0),
-    pitchDeg: clamp(finite(d.pitchDeg, 0), DEVICE_LIMITS.pitchDeg),
-    hfovDeg: camera ? clamp(finite(d.hfovDeg, DEFAULT_HFOV_DEG), DEVICE_LIMITS.hfovDeg) : null,
-    rangeM: camera ? clamp(finite(d.rangeM, DEFAULT_RANGE_M), DEVICE_LIMITS.rangeM) : null,
-  };
-}
-
-function createBody(d: DeviceCreate): DeviceCreate {
-  const camera = d.type === 'camera';
-  return {
-    ...d,
-    name: d.name.trim(),
-    hfovDeg: camera ? d.hfovDeg : null,
-    rangeM: camera ? d.rangeM : null,
-  };
-}
-
-function patchBody(d: DeviceCreate): DevicePatch {
-  const { id: _id, siteId: _siteId, ...rest } = createBody(d);
-  return rest;
-}
-
-function nextDeviceId(type: DeviceType, devices: Device[]): string {
-  const taken = new Set(devices.map((d) => d.id));
-  let n = 1;
-  while (taken.has(`${type}-${n}`)) n++;
-  return `${type}-${n}`;
-}
 
 function focusView(position: Position): ViewPose {
   return obliqueView(new Box3().setFromCenterAndSize(new Vector3(...position), FOCUS_BOX));
@@ -176,6 +128,7 @@ export function DeviceEditorPage() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [target, setTarget] = useState<Group | null>(null);
   const [raycaster] = useState(() => new Raycaster());
+  const [unsavedNotice, setUnsavedNotice] = useState(false);
   const gizmoReleasedAt = useRef(-Infinity);
   const latest = useRef(editing);
 
@@ -184,43 +137,44 @@ export function DeviceEditorPage() {
   });
   useEffect(() => () => useViewStore.getState().setSelectedFloor(null), []);
 
-  const editingKey = editing ? (editing.isNew ? NEW_DEVICE_KEY : editing.draft.id) : null;
   const placing = tool !== 'select';
   const saving = create.isPending || patch.isPending;
-
-  const markers = useMemo(() => {
-    if (!editing || !editingKey) return deviceList;
-    const p = previewDevice(editing.draft, editingKey);
-    return editing.isNew ? [...deviceList, p] : deviceList.map((d) => (d.id === p.id ? p : d));
-  }, [deviceList, editing, editingKey]);
+  const markers = useMemo(() => markersFor(deviceList, editing), [deviceList, editing]);
+  const msSinceGizmoRelease = () => performance.now() - gizmoReleasedAt.current;
 
   const startEditing = (next: Editing | null) => {
     setEditing(next);
     setErrors({});
     setSaved(false);
     setConfirmDelete(false);
+    setUnsavedNotice(false);
   };
   const updateDraft = (draft: DeviceCreate) => {
     setEditing((e) => e && { ...e, draft });
     setErrors({});
     setSaved(false);
+    setUnsavedNotice(false);
+  };
+  /** Applies a place/select transition; returns false when unsaved edits blocked it. */
+  const apply = (r: Transition): r is Extract<Transition, { blocked: false }> => {
+    if (r.blocked) {
+      setUnsavedNotice(true);
+      return false;
+    }
+    if (r.editing !== editing) startEditing(r.editing);
+    return true;
   };
 
-  const recentlyDraggedGizmo = () =>
-    performance.now() - gizmoReleasedAt.current < GIZMO_CLICK_GUARD_MS;
-
   const selectDevice = (d: Device, fly: boolean) => {
-    // Re-selecting must not throw away unsaved edits of the same device.
-    const same = editing && !editing.isNew && editing.draft.id === d.id;
-    if (!same) startEditing({ draft: { ...d }, isNew: false });
+    const r = nextEditingOnSelect(editing, d);
+    if (!apply(r)) return;
     setTool('select');
     useViewStore.getState().setSelectedFloor(d.floorId);
-    if (fly)
-      useViewStore.getState().requestFlyTo(focusView(same ? editing.draft.position : d.position));
+    if (fly) useViewStore.getState().requestFlyTo(focusView(r.editing.draft.position));
   };
 
   const onMarkerSelect = (id: string) => {
-    if (recentlyDraggedGizmo()) return;
+    if (isGizmoEcho(msSinceGizmoRelease())) return;
     const d = deviceList.find((x) => x.id === id);
     if (d) selectDevice(d, false);
   };
@@ -229,46 +183,23 @@ export function DeviceEditorPage() {
     // The handler runs once per mesh hit under the group; the first call decides.
     e.stopPropagation();
     if (tool === 'select' || !floor || !model.scene || saving) return;
-    if (e.delta > CLICK_SLOP_PX || recentlyDraggedGizmo()) return;
+    if (!isPlacementClick(e.delta, msSinceGizmoRelease())) return;
     raycaster.ray.copy(e.ray);
     raycaster.camera = e.camera;
     // The original scene, not the clipped clones: picking must not depend on how layers draw.
-    const hit = pickFloorHit(raycaster.intersectObject(model.scene, true), floor);
-    if (!hit) return;
-    const position = roundPosition(placementPosition(hit, raycaster.ray.direction));
-    if (editing?.isNew && editing.draft.type === tool) {
-      updateDraft({ ...editing.draft, floorId: floor.id, position });
-      return;
-    }
-    const id = nextDeviceId(tool, deviceList);
-    const camera = tool === 'camera';
-    startEditing({
-      isNew: true,
-      draft: {
-        id,
-        siteId,
-        floorId: floor.id,
-        type: tool,
-        name: id,
-        position,
-        yawDeg: 0,
-        pitchDeg: 0,
-        hfovDeg: camera ? DEFAULT_HFOV_DEG : null,
-        rangeM: camera ? DEFAULT_RANGE_M : null,
-      },
-    });
+    const hits = raycaster.intersectObject(model.scene, true);
+    const position = pickPlacement(hits, floor, raycaster.ray.direction);
+    if (!position) return;
+    apply(
+      nextEditingOnPlace(editing, { siteId, floorId: floor.id, type: tool, position }, deviceList),
+    );
   };
 
   const onGizmoRelease = () => {
     gizmoReleasedAt.current = performance.now();
     if (!editing || !target) return;
-    const { yawDeg, pitchDeg } = yawPitchFromQuaternion(target.quaternion);
-    updateDraft({
-      ...editing.draft,
-      position: roundPosition(target.position),
-      yawDeg: round(yawDeg, 1) % 360,
-      pitchDeg: round(pitchDeg, 1),
-    });
+    const draft = draftAfterGizmo(editing.draft, target);
+    if (draft !== editing.draft) updateDraft(draft);
   };
 
   const onSave = () => {
@@ -280,8 +211,9 @@ export function DeviceEditorPage() {
     const handlers = {
       onSuccess: (d: Device) => {
         if (!stillOpen()) return;
-        setEditing({ draft: { ...d }, isNew: false });
+        setEditing((cur) => editingAfterSave(cur, sent, d));
         setSaved(true);
+        setUnsavedNotice(false);
       },
       onError: (err: Error) => {
         if (stillOpen()) setErrors(apiErrorToFormErrors(err));
@@ -385,7 +317,7 @@ export function DeviceEditorPage() {
                 </group>
                 <DeviceMarkers
                   devices={markers}
-                  selectedId={editingKey}
+                  selectedId={editingKey(editing)}
                   onSelect={placing ? undefined : onMarkerSelect}
                   selectedRef={setTarget}
                 />
@@ -400,7 +332,11 @@ export function DeviceEditorPage() {
                   role="status"
                   className="pointer-events-none absolute left-1/2 top-2 -translate-x-1/2 rounded bg-slate-900/80 px-3 py-1 text-sm text-white"
                 >
-                  {floor ? t('devices.placeHint') : t('devices.selectFloorHint')}
+                  {unsavedNotice
+                    ? t('devices.unsavedHint')
+                    : floor
+                      ? t('devices.placeHint')
+                      : t('devices.selectFloorHint')}
                 </p>
               )}
             </>
@@ -426,6 +362,11 @@ export function DeviceEditorPage() {
             <h2 className="font-medium">
               {editing.isNew ? t('devices.newDevice') : t('devices.editDevice')}
             </h2>
+            {unsavedNotice && (
+              <p role="alert" className="text-sm text-amber-700 dark:text-amber-400">
+                {t('devices.unsavedHint')}
+              </p>
+            )}
             <DeviceForm
               value={editing.draft}
               onChange={updateDraft}
