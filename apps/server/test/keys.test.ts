@@ -115,6 +115,15 @@ describe('bearer auth', () => {
     expect(res.json()).toEqual({ name: 'Sensor Hub', defaultSeverity: 'critical' });
   });
 
+  test('the Bearer scheme is case-insensitive', async () => {
+    const k = await create({ name: 'Sensor Hub' });
+    for (const scheme of ['bearer', 'BEARER', 'bEaReR']) {
+      const res = await whoami(`${scheme} ${k.key}`);
+      expect(res.statusCode).toBe(200);
+      expect(res.json().name).toBe('Sensor Hub');
+    }
+  });
+
   test('patch is visible to the next request', async () => {
     const k = await create();
     await whoami(`Bearer ${k.key}`);

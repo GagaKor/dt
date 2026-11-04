@@ -71,6 +71,7 @@ export class KeyAuthenticator {
 /** Returns the dtk_ token, or null when the header is absent or malformed. */
 export function parseBearer(authorization: string | undefined): string | null {
   if (!authorization) return null;
-  const m = /^Bearer (dtk_\S+)$/.exec(authorization);
-  return m ? (m[1] as string) : null;
+  // The scheme name is case-insensitive (RFC 7235); the token is not.
+  const m = /^(\S+) (dtk_\S+)$/.exec(authorization);
+  return m && m[1]!.toLowerCase() === 'bearer' ? m[2]! : null;
 }
