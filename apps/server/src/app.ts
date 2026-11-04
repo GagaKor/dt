@@ -18,6 +18,8 @@ import { DeviceDirectory } from './devices/directory.js';
 import { registerAlarmRoutes } from './alarms/routes.js';
 import { EventService } from './ingest/eventService.js';
 import { registerEventRoutes } from './ingest/eventRoutes.js';
+import { registerPositionRoutes } from './ingest/positionRoutes.js';
+import { ObjectStore } from './objects/objectStore.js';
 import { registerDeviceRoutes } from './devices/routes.js';
 import { KeyAuthenticator } from './keys/keyAuth.js';
 import { registerKeyRoutes } from './keys/routes.js';
@@ -35,6 +37,7 @@ declare module 'fastify' {
   interface FastifyInstance {
     deviceDirectory: DeviceDirectory;
     eventService: EventService;
+    objectStore: ObjectStore;
   }
 }
 
@@ -86,16 +89,25 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
 
   await registerKeyRoutes(app, deps, new KeyAuthenticator(deps.db));
 
+  const objectStore = new ObjectStore(
+    () => deps.clock().getTime(),
+    () => undefined,
+  );
+  app.decorate('objectStore', objectStore);
+  const sweepTimer = setInterval(() => objectStore.sweep(), 1000);
+  app.addHook('onClose', async () => clearInterval(sweepTimer));
+
   const eventService = new EventService({
     db: deps.db,
     devices: deviceDirectory,
     mutex,
-    objects: { upsert: () => undefined },
+    objects: objectStore,
     publisher: { alarmChanged: () => undefined },
     clock: deps.clock,
   });
   app.decorate('eventService', eventService);
   await registerEventRoutes(app, eventService);
+  await registerPositionRoutes(app, deps.clock);
   await registerAlarmRoutes(app, deps, eventService);
 
   const typed = app.withTypeProvider<ZodTypeProvider>();
