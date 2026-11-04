@@ -1,13 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type {
-  CreatedIntegrationKey,
-  Device,
-  Floor,
-  FloorInput,
-  IntegrationKey,
-  Severity,
-  Site,
-} from '@dt/shared';
+import type { Device, Floor, FloorInput, IntegrationKey, Severity, Site } from '@dt/shared';
 import { apiFetch } from './client';
 
 export const meKey = ['me'] as const;
@@ -79,15 +71,6 @@ export function useIntegrationKeys() {
   return useQuery({
     queryKey: ['integration-keys'],
     queryFn: () => apiFetch<IntegrationKey[]>('/api/integration-keys'),
-  });
-}
-
-export function useCreateKey() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (v: { name: string; defaultSeverity?: Severity }) =>
-      apiFetch<CreatedIntegrationKey>('/api/integration-keys', { method: 'POST', json: v }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['integration-keys'] }),
   });
 }
 

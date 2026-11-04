@@ -1,12 +1,17 @@
 import { SEVERITIES, type CreatedIntegrationKey, type Severity } from '@dt/shared';
-import { useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { apiFetch } from '../../api/client';
 import { useTranslation } from 'react-i18next';
-import { useCreateKey, useIntegrationKeys, usePatchKey, useRevokeKey } from '../../api/queries';
+import { useIntegrationKeys, usePatchKey, useRevokeKey } from '../../api/queries';
 
 export function KeysPage() {
   const { t } = useTranslation();
   const keys = useIntegrationKeys();
-  const create = useCreateKey();
+  const qc = useQueryClient();
+  const [createFailed, setCreateFailed] = useState(false);
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const opener = useRef<Element | null>(null);
   const patch = usePatchKey();
   const revoke = useRevokeKey();
   const [name, setName] = useState('');
@@ -14,21 +19,39 @@ export function KeysPage() {
   const [copied, setCopied] = useState(false);
   const [confirmId, setConfirmId] = useState<string | null>(null);
 
-  const submit = (e: FormEvent) => {
+  // Not a react-query mutation: its data would keep the plaintext in the mutation cache.
+  const submit = async (e: FormEvent) => {
     e.preventDefault();
     const n = name.trim();
     if (!n) return;
-    create.mutate(
-      { name: n },
-      {
-        onSuccess: (k: CreatedIntegrationKey) => {
-          setName('');
-          setCopied(false);
-          setPlaintext(k.key);
-        },
-      },
-    );
+    setCreateFailed(false);
+    opener.current = document.activeElement;
+    try {
+      const k = await apiFetch<CreatedIntegrationKey>('/api/integration-keys', {
+        method: 'POST',
+        json: { name: n },
+      });
+      setName('');
+      setCopied(false);
+      setPlaintext(k.key);
+      await qc.invalidateQueries({ queryKey: ['integration-keys'] });
+    } catch {
+      setCreateFailed(true);
+    }
   };
+
+  const closePlaintext = () => {
+    setPlaintext(null);
+    if (opener.current instanceof HTMLElement) opener.current.focus();
+  };
+
+  useEffect(() => {
+    const d = dialogRef.current;
+    if (plaintext === null || !d) return;
+    if (typeof d.showModal === 'function') d.showModal();
+    else d.setAttribute('open', '');
+    d.focus();
+  }, [plaintext !== null]);
 
   const copy = async () => {
     try {
@@ -42,7 +65,7 @@ export function KeysPage() {
   return (
     <div className="flex max-w-3xl flex-col gap-4 p-6">
       <h1 className="text-xl font-semibold">{t('pages.keys')}</h1>
-      <form onSubmit={submit} className="flex gap-2">
+      <form onSubmit={(e) => void submit(e)} className="flex gap-2">
         <input
           data-testid="key-create-name"
           aria-label={t('keys.name')}
@@ -59,18 +82,25 @@ export function KeysPage() {
           {t('keys.create')}
         </button>
       </form>
-      {create.isError && (
+      {createFailed && (
         <p role="alert" className="text-sm text-red-600">
           {t('common.error')}
         </p>
       )}
 
       {plaintext !== null && (
-        <div
-          role="dialog"
-          aria-modal="true"
+        <dialog
+          ref={dialogRef}
+          tabIndex={-1}
           aria-label={t('keys.plaintextTitle')}
-          className="rounded border border-amber-400 bg-amber-50 p-4 dark:bg-slate-800"
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              e.preventDefault();
+              closePlaintext();
+            }
+          }}
+          onClose={closePlaintext}
+          className="m-auto rounded border border-amber-400 bg-amber-50 p-4 dark:bg-slate-800"
         >
           <p className="mb-2 text-sm">{t('keys.plaintextHint')}</p>
           <code
@@ -89,13 +119,13 @@ export function KeysPage() {
             </button>
             <button
               type="button"
-              onClick={() => setPlaintext(null)}
+              onClick={closePlaintext}
               className="rounded border px-3 py-1 text-sm"
             >
               {t('common.close')}
             </button>
           </div>
-        </div>
+        </dialog>
       )}
 
       <ul className="flex flex-col gap-2">

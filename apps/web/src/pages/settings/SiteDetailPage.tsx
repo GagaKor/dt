@@ -146,12 +146,20 @@ export function SiteDetailPage() {
               {t('floors.applySuggestion')}
             </button>
           )}
-          <FloorEditor value={value} onChange={setDraft} issues={issues} />
+          {floors.isError && (
+            <p role="alert" className="text-sm text-red-600">
+              {t('floors.error.load')}
+            </p>
+          )}
+          {draft === null && !floors.isError && (
+            <p className="text-sm text-slate-500">{t('app.loading')}</p>
+          )}
+          {draft !== null && <FloorEditor value={value} onChange={setDraft} issues={issues} />}
           <div className="flex items-center gap-3">
             <button
               type="button"
               data-testid="floors-save"
-              disabled={issues.length > 0 || save.isPending}
+              disabled={draft === null || issues.length > 0 || save.isPending}
               onClick={onSave}
               className="rounded bg-slate-800 px-3 py-1 text-white disabled:opacity-50 dark:bg-slate-200 dark:text-slate-900"
             >

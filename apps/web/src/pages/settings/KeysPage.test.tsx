@@ -29,13 +29,16 @@ beforeEach(() => {
   });
 });
 
-test('KeysPage shows plaintext after create and hides it after close', async () => {
-  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+const setup = () =>
   render(
     <QueryClientProvider client={qc}>
       <KeysPage />
     </QueryClientProvider>,
   );
+
+test('KeysPage shows plaintext after create and hides it after close', async () => {
+  setup();
   expect(await screen.findAllByTestId('key-row')).toHaveLength(1);
   await userEvent.type(screen.getByTestId('key-create-name'), 'new');
   await userEvent.click(screen.getByTestId('key-create-submit'));
@@ -43,4 +46,23 @@ test('KeysPage shows plaintext after create and hides it after close', async () 
   await userEvent.click(screen.getByRole('button', { name: 'Close' }));
   await waitFor(() => expect(screen.queryByTestId('key-plaintext')).toBeNull());
   expect(document.body.textContent).not.toContain('dtk_secret_plaintext');
+  expect(
+    JSON.stringify(
+      qc
+        .getMutationCache()
+        .getAll()
+        .map((m) => m.state),
+    ),
+  ).not.toContain('dtk_secret_plaintext');
+});
+
+test('Escape closes the key dialog and clears the plaintext', async () => {
+  setup();
+  await screen.findAllByTestId('key-row');
+  await userEvent.type(screen.getByTestId('key-create-name'), 'new');
+  await userEvent.click(screen.getByTestId('key-create-submit'));
+  await screen.findByTestId('key-plaintext');
+  await userEvent.keyboard('{Escape}');
+  await waitFor(() => expect(screen.queryByTestId('key-plaintext')).toBeNull());
+  expect(screen.getByTestId('key-create-submit')).toHaveFocus();
 });

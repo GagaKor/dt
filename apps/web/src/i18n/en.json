@@ -90,7 +90,8 @@
     },
     "error": {
       "floor_in_use": "Floors in use by devices cannot be removed. Devices: {{devices}}",
-      "invalid_floors": "The floor ranges are invalid."
+      "invalid_floors": "The floor ranges are invalid.",
+      "load": "Could not load floors."
     }
   },
   "keys": {

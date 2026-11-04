@@ -90,7 +90,8 @@
     },
     "error": {
       "floor_in_use": "장치가 사용 중인 층은 삭제할 수 없습니다. 장치: {{devices}}",
-      "invalid_floors": "층 범위가 올바르지 않습니다."
+      "invalid_floors": "층 범위가 올바르지 않습니다.",
+      "load": "층 정보를 불러오지 못했습니다."
     }
   },
   "keys": {
