@@ -1,5 +1,13 @@
-import { useQuery } from '@tanstack/react-query';
-import type { Device, Floor, Site } from '@dt/shared';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type {
+  CreatedIntegrationKey,
+  Device,
+  Floor,
+  FloorInput,
+  IntegrationKey,
+  Severity,
+  Site,
+} from '@dt/shared';
 import { apiFetch } from './client';
 
 export const meKey = ['me'] as const;
@@ -30,5 +38,75 @@ export function useDevices(siteId: string | undefined) {
     queryKey: ['sites', siteId, 'devices'],
     queryFn: () => apiFetch<Device[]>(`/api/sites/${siteId}/devices`),
     enabled: !!siteId,
+  });
+}
+
+export function useCreateSite() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (name: string) => apiFetch<Site>('/api/sites', { method: 'POST', json: { name } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['sites'] }),
+  });
+}
+
+export function useRenameSite() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { id: string; name: string }) =>
+      apiFetch<Site>(`/api/sites/${v.id}`, { method: 'PATCH', json: { name: v.name } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['sites'] }),
+  });
+}
+
+export function useDeleteSite() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => apiFetch<void>(`/api/sites/${id}`, { method: 'DELETE' }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['sites'] }),
+  });
+}
+
+export function useSaveFloors(siteId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (floors: FloorInput[]) =>
+      apiFetch<Floor[]>(`/api/sites/${siteId}/floors`, { method: 'PUT', json: floors }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['sites', siteId, 'floors'] }),
+  });
+}
+
+export function useIntegrationKeys() {
+  return useQuery({
+    queryKey: ['integration-keys'],
+    queryFn: () => apiFetch<IntegrationKey[]>('/api/integration-keys'),
+  });
+}
+
+export function useCreateKey() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { name: string; defaultSeverity?: Severity }) =>
+      apiFetch<CreatedIntegrationKey>('/api/integration-keys', { method: 'POST', json: v }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['integration-keys'] }),
+  });
+}
+
+export function usePatchKey() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { id: string; defaultSeverity: Severity }) =>
+      apiFetch<IntegrationKey>(`/api/integration-keys/${v.id}`, {
+        method: 'PATCH',
+        json: { defaultSeverity: v.defaultSeverity },
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['integration-keys'] }),
+  });
+}
+
+export function useRevokeKey() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => apiFetch<void>(`/api/integration-keys/${id}`, { method: 'DELETE' }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['integration-keys'] }),
   });
 }

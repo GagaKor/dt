@@ -1,5 +1,8 @@
 {
-  "app": { "name": "dt", "loading": "Loading..." },
+  "app": {
+    "name": "dt",
+    "loading": "Loading..."
+  },
   "login": {
     "title": "Sign in",
     "username": "Username",
@@ -31,5 +34,75 @@
     "allFloors": "All",
     "coordinates": "{{x}}, {{y}} (m) · {{floor}}",
     "coordinatesNoFloor": "{{x}}, {{y}} (m)"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "close": "Close",
+    "error": "Something went wrong. Please try again."
+  },
+  "severity": {
+    "critical": "Critical",
+    "major": "Major",
+    "minor": "Minor",
+    "info": "Info"
+  },
+  "sites": {
+    "name": "Site name",
+    "create": "Create site",
+    "rename": "Rename",
+    "delete": "Delete",
+    "deleteConfirm": "Delete \"{{name}}\" and all its data?"
+  },
+  "model": {
+    "title": "3D model",
+    "upload": "Upload model (.glb)",
+    "uploading": "Uploading",
+    "none": "No model uploaded yet.",
+    "warning": {
+      "units_suspect_too_large": "The model looks very large. Units may be millimeters or centimeters instead of meters.",
+      "units_suspect_too_small": "The model looks very small. Units may not be meters."
+    },
+    "error": {
+      "not_glb": "The file is not a binary glTF (.glb).",
+      "invalid_gltf": "The glTF content is invalid.",
+      "unsupported_extension": "The model uses an unsupported glTF extension.",
+      "model_too_large": "The file is too large.",
+      "unknown": "Upload failed. Please try again."
+    }
+  },
+  "floors": {
+    "title": "Floors",
+    "name": "Name",
+    "min": "Min elevation (m)",
+    "max": "Max elevation (m)",
+    "add": "Add floor",
+    "remove": "Remove",
+    "applySuggestion": "Apply suggested floors",
+    "saved": "Saved",
+    "issue": {
+      "empty_name": "Name is required.",
+      "duplicate_name": "Name is already used.",
+      "min_not_below_max": "Min must be below max.",
+      "overlap": "This floor overlaps the previous floor.",
+      "not_ascending": "Floors must be in ascending order.",
+      "too_many": "Too many floors."
+    },
+    "error": {
+      "floor_in_use": "Floors in use by devices cannot be removed. Devices: {{devices}}",
+      "invalid_floors": "The floor ranges are invalid."
+    }
+  },
+  "keys": {
+    "name": "Key name",
+    "create": "Create key",
+    "plaintextTitle": "New integration key",
+    "plaintextHint": "Copy this key now. It will not be shown again.",
+    "copy": "Copy",
+    "copied": "Copied",
+    "defaultSeverity": "Default severity",
+    "revoke": "Revoke",
+    "revoked": "Revoked",
+    "revokeConfirm": "Revoke this key?"
   }
 }

@@ -1,5 +1,8 @@
 {
-  "app": { "name": "dt", "loading": "불러오는 중..." },
+  "app": {
+    "name": "dt",
+    "loading": "불러오는 중..."
+  },
   "login": {
     "title": "로그인",
     "username": "아이디",
@@ -31,5 +34,75 @@
     "allFloors": "전체",
     "coordinates": "{{x}}, {{y}} (m) · {{floor}}",
     "coordinatesNoFloor": "{{x}}, {{y}} (m)"
+  },
+  "common": {
+    "save": "저장",
+    "cancel": "취소",
+    "close": "닫기",
+    "error": "문제가 발생했습니다. 다시 시도해 주세요."
+  },
+  "severity": {
+    "critical": "치명",
+    "major": "주요",
+    "minor": "경미",
+    "info": "정보"
+  },
+  "sites": {
+    "name": "현장 이름",
+    "create": "현장 생성",
+    "rename": "이름 변경",
+    "delete": "삭제",
+    "deleteConfirm": "\"{{name}}\"과(와) 모든 데이터를 삭제할까요?"
+  },
+  "model": {
+    "title": "3D 모델",
+    "upload": "모델 업로드 (.glb)",
+    "uploading": "업로드 중",
+    "none": "업로드된 모델이 없습니다.",
+    "warning": {
+      "units_suspect_too_large": "모델이 매우 큽니다. 단위가 m가 아니라 mm 또는 cm일 수 있습니다.",
+      "units_suspect_too_small": "모델이 매우 작습니다. 단위가 m가 아닐 수 있습니다."
+    },
+    "error": {
+      "not_glb": "바이너리 glTF(.glb) 파일이 아닙니다.",
+      "invalid_gltf": "glTF 내용이 올바르지 않습니다.",
+      "unsupported_extension": "지원하지 않는 glTF 확장을 사용합니다.",
+      "model_too_large": "파일이 너무 큽니다.",
+      "unknown": "업로드에 실패했습니다. 다시 시도해 주세요."
+    }
+  },
+  "floors": {
+    "title": "층",
+    "name": "이름",
+    "min": "최소 높이 (m)",
+    "max": "최대 높이 (m)",
+    "add": "층 추가",
+    "remove": "삭제",
+    "applySuggestion": "제안된 층 적용",
+    "saved": "저장됨",
+    "issue": {
+      "empty_name": "이름을 입력하세요.",
+      "duplicate_name": "이미 사용 중인 이름입니다.",
+      "min_not_below_max": "최소 높이는 최대 높이보다 낮아야 합니다.",
+      "overlap": "이전 층과 범위가 겹칩니다.",
+      "not_ascending": "층은 아래에서 위 순서여야 합니다.",
+      "too_many": "층이 너무 많습니다."
+    },
+    "error": {
+      "floor_in_use": "장치가 사용 중인 층은 삭제할 수 없습니다. 장치: {{devices}}",
+      "invalid_floors": "층 범위가 올바르지 않습니다."
+    }
+  },
+  "keys": {
+    "name": "키 이름",
+    "create": "키 생성",
+    "plaintextTitle": "새 연동 키",
+    "plaintextHint": "지금 키를 복사하세요. 다시 볼 수 없습니다.",
+    "copy": "복사",
+    "copied": "복사됨",
+    "defaultSeverity": "기본 심각도",
+    "revoke": "폐기",
+    "revoked": "폐기됨",
+    "revokeConfirm": "이 키를 폐기할까요?"
   }
 }
