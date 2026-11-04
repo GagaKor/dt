@@ -39,7 +39,12 @@ export interface TestApp {
   close(): Promise<void>;
 }
 
-export async function createTestApp(opts: { config?: Partial<Config> } = {}): Promise<TestApp> {
+export async function createTestApp(
+  opts: {
+    config?: Partial<Config>;
+    beforeReady?: (app: FastifyInstance) => void | Promise<void>;
+  } = {},
+): Promise<TestApp> {
   const dir = await mkdtemp(join(tmpdir(), 'dt-test-'));
   const config: Config = {
     ...loadConfig({
@@ -60,6 +65,7 @@ export async function createTestApp(opts: { config?: Partial<Config> } = {}): Pr
     clock: () => clock.now(),
   };
   const app = await buildApp(deps);
+  await opts.beforeReady?.(app);
   await app.ready();
   return {
     app,

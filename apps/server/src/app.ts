@@ -16,6 +16,8 @@ import { HttpError } from './errors.js';
 import { KeyedMutex } from './lib/keyedMutex.js';
 import { DeviceDirectory } from './devices/directory.js';
 import { registerDeviceRoutes } from './devices/routes.js';
+import { KeyAuthenticator } from './keys/keyAuth.js';
+import { registerKeyRoutes } from './keys/routes.js';
 import { registerSiteRoutes } from './sites/routes.js';
 import type { ObjectStorage } from './storage/types.js';
 
@@ -76,6 +78,8 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   app.decorate('deviceDirectory', deviceDirectory);
   await registerSiteRoutes(app, deps, new KeyedMutex(), deviceDirectory);
   await registerDeviceRoutes(app, deps, deviceDirectory);
+
+  await registerKeyRoutes(app, deps, new KeyAuthenticator(deps.db));
 
   const typed = app.withTypeProvider<ZodTypeProvider>();
   typed.get(
