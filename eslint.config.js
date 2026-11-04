@@ -10,6 +10,7 @@ export default tseslint.config(
       'data/**',
       'e2e/artifacts/**',
       'test-results/**',
+      'playwright-report/**',
       '.superpowers/**',
     ],
   },

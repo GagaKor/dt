@@ -30,5 +30,6 @@ jobs:
           name: e2e-artifacts
           path: |
             test-results/
+            playwright-report/
             e2e/artifacts/
           if-no-files-found: ignore

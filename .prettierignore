@@ -4,5 +4,6 @@ data
 pnpm-lock.yaml
 e2e/artifacts
 test-results
+playwright-report
 .superpowers
 docs
