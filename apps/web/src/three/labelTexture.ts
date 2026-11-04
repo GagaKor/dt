@@ -25,9 +25,14 @@ function drawLabel(text: string): CanvasTexture {
     // Resizing the canvas resets the context state.
     ctx.font = FONT;
     ctx.fillStyle = 'rgba(15, 23, 42, 0.78)';
-    ctx.beginPath();
-    ctx.roundRect(0, 0, width, HEIGHT_PX, 8);
-    ctx.fill();
+    // roundRect is missing in older browsers; throwing here would break the render loop.
+    if (typeof ctx.roundRect === 'function') {
+      ctx.beginPath();
+      ctx.roundRect(0, 0, width, HEIGHT_PX, 8);
+      ctx.fill();
+    } else {
+      ctx.fillRect(0, 0, width, HEIGHT_PX);
+    }
     ctx.fillStyle = '#ffffff';
     ctx.textBaseline = 'middle';
     ctx.fillText(text, PAD_X, HEIGHT_PX / 2 + 1);

@@ -35,6 +35,17 @@ test('returns one cached texture per text drawn with a system font', () => {
   expect(a.userData.aspect).toBeGreaterThan(1);
 });
 
+test('falls back to a plain rectangle where roundRect is missing', () => {
+  const fillRect = vi.fn();
+  const { roundRect: _roundRect, ...withoutRoundRect } = ctx;
+  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(
+    () => ({ ...withoutRoundRect, fillRect }) as unknown as CanvasRenderingContext2D,
+  );
+  expect(() => getLabelTexture('no-round-rect')).not.toThrow();
+  expect(fillRect).toHaveBeenCalledWith(0, 0, expect.any(Number), expect.any(Number));
+  expect(fillText).toHaveBeenCalledWith('no-round-rect', expect.any(Number), expect.any(Number));
+});
+
 test('evicts and disposes the least recently used texture beyond 500', () => {
   const first = getLabelTexture('label-0');
   const second = getLabelTexture('label-1');
