@@ -25,5 +25,11 @@
     "siteDetail": "Site settings",
     "devices": "Devices",
     "keys": "Integration keys"
+  },
+  "viewer": {
+    "floors": "Floors",
+    "allFloors": "All",
+    "coordinates": "{{x}}, {{y}} (m) · {{floor}}",
+    "coordinatesNoFloor": "{{x}}, {{y}} (m)"
   }
 }

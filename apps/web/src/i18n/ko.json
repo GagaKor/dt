@@ -25,5 +25,11 @@
     "siteDetail": "현장 설정",
     "devices": "장치",
     "keys": "연동 키"
+  },
+  "viewer": {
+    "floors": "층",
+    "allFloors": "전체",
+    "coordinates": "{{x}}, {{y}} (m) · {{floor}}",
+    "coordinatesNoFloor": "{{x}}, {{y}} (m)"
   }
 }
