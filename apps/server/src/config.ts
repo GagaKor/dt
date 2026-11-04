@@ -24,6 +24,7 @@ const schema = z
     ADMIN_PASSWORD: z.string().min(8),
     SESSION_SECRET: z.string().min(32),
     MAX_MODEL_MB: z.coerce.number().positive().default(500),
+    MIGRATIONS_DIR: optional(z.string()),
     WEB_DIST_DIR: optional(z.string()),
     LOG_LEVEL: z.string().default('info'),
   })
