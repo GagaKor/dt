@@ -1,0 +1,223 @@
+{
+  "app": {
+    "name": "dt",
+    "loading": "Loading..."
+  },
+  "login": {
+    "title": "Sign in",
+    "username": "Username",
+    "password": "Password",
+    "submit": "Sign in",
+    "invalid": "Invalid username or password",
+    "error": "Could not sign in. Please try again."
+  },
+  "nav": {
+    "monitor": "Monitor",
+    "dashboard": "Dashboard",
+    "settings": "Settings",
+    "site": "Site",
+    "selectSite": "Select a site",
+    "alarms": "Unacknowledged alarms",
+    "language": "Language",
+    "logout": "Log out"
+  },
+  "pages": {
+    "monitor": "Monitor",
+    "dashboard": "Dashboard",
+    "sites": "Sites",
+    "siteDetail": "Site settings",
+    "devices": "Devices",
+    "keys": "Integration keys"
+  },
+  "viewer": {
+    "floors": "Floors",
+    "allFloors": "All",
+    "coordinates": "{{x}}, {{y}} (m) · {{floor}}",
+    "coordinatesNoFloor": "{{x}}, {{y}} (m)"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "close": "Close",
+    "error": "Something went wrong. Please try again."
+  },
+  "severity": {
+    "critical": "Critical",
+    "major": "Major",
+    "minor": "Minor",
+    "info": "Info"
+  },
+  "sites": {
+    "name": "Site name",
+    "create": "Create site",
+    "rename": "Rename",
+    "delete": "Delete",
+    "deleteConfirm": "Delete \"{{name}}\" and all its data?"
+  },
+  "model": {
+    "title": "3D model",
+    "upload": "Upload model (.glb)",
+    "uploading": "Uploading",
+    "none": "No model uploaded yet.",
+    "warning": {
+      "units_suspect_too_large": "The model looks very large. Units may be millimeters or centimeters instead of meters.",
+      "units_suspect_too_small": "The model looks very small. Units may not be meters."
+    },
+    "error": {
+      "not_glb": "The file is not a binary glTF (.glb).",
+      "invalid_gltf": "The glTF content is invalid.",
+      "unsupported_extension": "The model uses an unsupported glTF extension.",
+      "model_too_large": "The file is too large.",
+      "unknown": "Upload failed. Please try again."
+    }
+  },
+  "floors": {
+    "title": "Floors",
+    "name": "Name",
+    "min": "Min elevation (m)",
+    "max": "Max elevation (m)",
+    "add": "Add floor",
+    "remove": "Remove",
+    "applySuggestion": "Apply suggested floors",
+    "saved": "Saved",
+    "issue": {
+      "empty_name": "Name is required.",
+      "duplicate_name": "Name is already used.",
+      "min_not_below_max": "Min must be below max.",
+      "overlap": "This floor overlaps the previous floor.",
+      "not_ascending": "Floors must be in ascending order.",
+      "too_many": "Too many floors."
+    },
+    "error": {
+      "floor_in_use": "Floors in use by devices cannot be removed. Devices: {{devices}}",
+      "invalid_floors": "The floor ranges are invalid.",
+      "load": "Could not load floors."
+    }
+  },
+  "keys": {
+    "name": "Key name",
+    "create": "Create key",
+    "plaintextTitle": "New integration key",
+    "plaintextHint": "Copy this key now. It will not be shown again.",
+    "copy": "Copy",
+    "copied": "Copied",
+    "copyManually": "Automatic copy is not available here. The key is selected: press Ctrl+C (Cmd+C on a Mac) to copy it.",
+    "defaultSeverity": "Default severity",
+    "revoke": "Revoke",
+    "revoked": "Revoked",
+    "revokeConfirm": "Revoke this key?"
+  },
+  "devices": {
+    "manage": "Place devices",
+    "backToSite": "Back to site settings",
+    "toolbar": "Editor tools",
+    "tool": {
+      "select": "Select",
+      "placeCamera": "Place camera",
+      "placeSensor": "Place sensor"
+    },
+    "view": {
+      "top": "Top view",
+      "oblique": "Oblique view"
+    },
+    "transform": {
+      "translate": "Move",
+      "rotate": "Rotate"
+    },
+    "selectFloorHint": "Select a floor to place devices.",
+    "placeHint": "Click the model to place the device.",
+    "unsavedHint": "Save or close the device you are editing first.",
+    "noModel": "Upload a 3D model in the site settings before placing devices.",
+    "newDevice": "New device",
+    "editDevice": "Edit device",
+    "id": "Device ID",
+    "name": "Name",
+    "type": "Type",
+    "types": {
+      "camera": "Camera",
+      "sensor": "Sensor"
+    },
+    "yaw": "Yaw (°)",
+    "pitch": "Pitch (°)",
+    "hfov": "Horizontal FOV (°)",
+    "range": "Range (m)",
+    "position": "Position: x {{x}}, y {{y}} m · height {{h}} m",
+    "list": "Devices",
+    "empty": "No devices yet.",
+    "saved": "Saved",
+    "delete": "Delete",
+    "deleteConfirm": "Delete device \"{{id}}\"?",
+    "error": {
+      "invalid_id": "Use 1–64 letters, digits, '.', '_' or '-'.",
+      "required": "This field is required.",
+      "out_of_range": "Must be between {{min}} and {{max}}.",
+      "device_id_taken": "This device ID is already in use.",
+      "floor_not_in_site": "The floor does not belong to this site.",
+      "position_outside_floor": "The position is outside the floor's height range.",
+      "validation_error": "Some values are invalid.",
+      "device_not_found": "The device no longer exists.",
+      "load": "Could not load devices.",
+      "unknown": "Could not save the device. Please try again."
+    }
+  },
+  "monitor": {
+    "view3d": "3D view",
+    "noModel": "This site has no 3D model yet. Upload one in the site settings.",
+    "modelError": "Could not load the 3D model.",
+    "notFound": "This site does not exist.",
+    "kpi": {
+      "unacked": "Unacknowledged alarms",
+      "today": "Events today",
+      "objects": "Visible objects"
+    },
+    "status": {
+      "connecting": "Connecting",
+      "open": "Live",
+      "closed": "Disconnected"
+    },
+    "alarms": {
+      "title": "Alarms",
+      "empty": "No unacknowledged alarms.",
+      "partial": "Showing {{shown}} of {{total}}",
+      "noFloor": "No floor",
+      "addNote": "Add note",
+      "note": "Note (optional)",
+      "ack": "Acknowledge",
+      "ackError": "Could not acknowledge the alarm. Please try again."
+    }
+  },
+  "toast": {
+    "newAlarm": "New {{severity}} alarm",
+    "dismiss": "Dismiss"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "presets": {
+      "today": "Today",
+      "7d": "Last 7 days",
+      "30d": "Last 30 days",
+      "custom": "Custom"
+    },
+    "from": "From",
+    "to": "To",
+    "apply": "Apply",
+    "refresh": "Refresh",
+    "total": "Events in range",
+    "unacked": "Unacknowledged alarms",
+    "timeseries": "Events over time",
+    "byType": "By event type",
+    "bySeverity": "By severity",
+    "byDevice": "Top 10 devices",
+    "byFloor": "By floor",
+    "empty": "No events in this range.",
+    "deviceDeleted": "{{id}} (deleted)",
+    "unknownFloor": "Unknown floor",
+    "count": "Events",
+    "loadError": "Could not load statistics.",
+    "error": {
+      "range_too_long": "The range is too long for this resolution. Choose a shorter range.",
+      "invalid_tz": "The time zone is not supported.",
+      "invalid_range": "The range is invalid. The start must be before the end."
+    }
+  }
+}

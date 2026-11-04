@@ -1,0 +1,13 @@
+export const ALARM_CONTINUATION_MS = 10_000;
+export const OBJECT_HOLD_MS = 1_000;
+export const OBJECT_FADE_MS = 3_000;
+export const OBJECT_TTL_MS = 4_000;
+export const OBJECTS_BROADCAST_INTERVAL_MS = 200;
+export const MAX_POSITION_BATCH = 1_000;
+export const FUTURE_TOLERANCE_MS = 300_000;
+export const FLOOR_CEILING_CUT_M = 0.5;
+export const FLOOR_BASE_SLACK_M = 0.05;
+// The server pings every realtime client this often; a client that hears nothing for
+// REALTIME_STALE_MS treats the connection as dead and reconnects.
+export const REALTIME_HEARTBEAT_MS = 25_000;
+export const REALTIME_STALE_MS = 60_000;
