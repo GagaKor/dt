@@ -194,7 +194,7 @@ export function useStats(p: StatsParams) {
     },
     enabled: !!p.siteId,
     retry: false,
-    // Keep the previous charts on screen while a new range or a refresh loads.
-    placeholderData: (prev) => prev,
+    // Keep the previous charts while a new range or a refresh loads, but never another site's.
+    placeholderData: (prev, prevQuery) => (prevQuery?.queryKey[1] === p.siteId ? prev : undefined),
   });
 }

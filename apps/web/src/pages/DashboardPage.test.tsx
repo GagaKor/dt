@@ -3,7 +3,7 @@ import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { Alarm, StatsResponse } from '@dt/shared';
 import { cloneElement, type ReactElement } from 'react';
-import { MemoryRouter, Route, Routes } from 'react-router';
+import { Link, MemoryRouter, Route, Routes } from 'react-router';
 import { beforeEach, expect, test, vi } from 'vitest';
 import '../i18n';
 import { ApiError } from '../api/client';
@@ -25,6 +25,7 @@ vi.mock('recharts', async (orig) => ({
   }) => cloneElement(children, { width: 400, height: 200 }),
 }));
 
+const SITE_B = '22222222-2222-4222-8222-222222222222';
 const SITE = '11111111-1111-4111-8111-111111111111';
 
 const stats: StatsResponse = {
@@ -57,7 +58,15 @@ function setup() {
     <QueryClientProvider client={qc}>
       <MemoryRouter initialEntries={[`/sites/${SITE}/dashboard`]}>
         <Routes>
-          <Route path="/sites/:siteId/dashboard" element={<DashboardPage />} />
+          <Route
+            path="/sites/:siteId/dashboard"
+            element={
+              <>
+                <Link to={`/sites/${SITE_B}/dashboard`}>to-b</Link>
+                <DashboardPage />
+              </>
+            }
+          />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -150,4 +159,16 @@ test('refetches when a new alarm arrives, at most once per 5 seconds', async () 
   } finally {
     vi.useRealTimers();
   }
+});
+
+test('drops the previous site stats while the new site loads', async () => {
+  apiFetch.mockResolvedValueOnce(stats);
+  setup();
+  await waitFor(() => expect(screen.getByTestId('stats-timeseries-total')).toHaveTextContent('4'));
+  apiFetch.mockReturnValue(new Promise(() => {}));
+  await userEvent.click(screen.getByText('to-b'));
+  await waitFor(() => expect(lastQuery().get('siteId')).toBe(SITE_B));
+  expect(screen.queryByTestId('stats-timeseries-total')).not.toBeInTheDocument();
+  expect(screen.queryByTestId('stats-bytype')).not.toBeInTheDocument();
+  expect(screen.getByText('Loading...')).toBeInTheDocument();
 });
