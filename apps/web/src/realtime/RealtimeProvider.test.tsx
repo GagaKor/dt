@@ -1,6 +1,7 @@
 import type { Alarm, Site } from '@dt/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, render, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { FakeWebSocket } from './fakeWebSocket';
 import { RealtimeProvider, streamedSiteId } from './RealtimeProvider';
@@ -53,14 +54,17 @@ afterEach(() => {
   useRealtimeStore.getState().reset();
 });
 
-function setup(siteId?: string) {
+// `siteId` is what ShellLayout reads from the URL; `path` is the page being shown.
+function setup(siteId?: string, path = siteId ? `/sites/${siteId}/monitor` : '/settings/keys') {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const invalidate = vi.spyOn(qc, 'invalidateQueries');
   const view = render(
     <QueryClientProvider client={qc}>
-      <RealtimeProvider siteId={siteId}>
-        <p>page</p>
-      </RealtimeProvider>
+      <MemoryRouter initialEntries={[path]}>
+        <RealtimeProvider siteId={siteId}>
+          <p>page</p>
+        </RealtimeProvider>
+      </MemoryRouter>
     </QueryClientProvider>,
   );
   const ws = FakeWebSocket.instances[0]!;
@@ -85,6 +89,44 @@ test('streams the site in the URL and applies its messages', async () => {
 test('pages without a site stream the first site', async () => {
   const { ws } = setup();
   await waitFor(() => expect(ws.sent).toEqual([subscribe('s1')]));
+});
+
+const notice = (siteId: string) => ({
+  type: 'summary',
+  sites: [],
+  newAlarm: {
+    alarmId: `n-${siteId}`,
+    siteId,
+    siteName: siteId,
+    severity: 'critical',
+    eventType: 'intrusion',
+  },
+});
+const toastSites = () => useRealtimeStore.getState().toasts.map((t) => t.siteId);
+
+test('on a page without a site, alarms of the subscribed first site still toast', async () => {
+  const { ws } = setup();
+  await waitFor(() => expect(ws.sent).toEqual([subscribe('s1')]));
+  expect(useRealtimeStore.getState().viewedSiteId).toBeNull();
+  act(() => ws.receive(notice('s1')));
+  expect(toastSites()).toEqual(['s1']);
+});
+
+test("on a site's monitor only the other sites toast", async () => {
+  const { ws } = setup('s1');
+  await waitFor(() => expect(ws.sent).toEqual([subscribe('s1')]));
+  expect(useRealtimeStore.getState().viewedSiteId).toBe('s1');
+  act(() => ws.receive(notice('s1')));
+  expect(toastSites()).toEqual([]);
+  act(() => ws.receive(notice('s2')));
+  expect(toastSites()).toEqual(['s2']);
+});
+
+test("a site's settings page streams that site but does not count as viewing it", async () => {
+  const { ws } = setup('s2', '/settings/sites/s2');
+  await waitFor(() => expect(ws.sent).toEqual([subscribe('s2')]));
+  act(() => ws.receive(notice('s2')));
+  expect(toastSites()).toEqual(['s2']);
 });
 
 test('unmounting closes the connection and clears the store', async () => {

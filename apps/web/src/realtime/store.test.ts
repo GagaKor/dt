@@ -122,14 +122,35 @@ test('alarms of other sites are ignored', () => {
   expect(state().alarms.size).toBe(0);
 });
 
-test('summary toast only for other sites', () => {
+test('summary toast only for sites not being viewed', () => {
   state().apply(snapshot('s1'), 0);
+  state().setViewedSite('s1');
   state().apply(notice('s1'), 0);
   expect(state().toasts).toHaveLength(0);
   state().apply(notice('s2'), 0);
   expect(state().toasts).toHaveLength(1);
   expect(state().toasts[0]).toMatchObject({ siteId: 's2', siteName: 'Site s2' });
   expect(state().sites).toEqual([site('s1', 1), site('s2', 1)]);
+});
+
+test('the subscribed site still toasts while no site is being viewed', () => {
+  state().watch('s1');
+  state().apply(snapshot('s1'), 0);
+  state().apply(notice('s1'), 0);
+  expect(state().toasts).toHaveLength(1);
+  expect(state().toasts[0]).toMatchObject({ siteId: 's1' });
+});
+
+test('viewing a site only silences that site', () => {
+  state().watch('s1');
+  state().setViewedSite('s2');
+  state().apply(notice('s2'), 0);
+  expect(state().toasts).toHaveLength(0);
+  state().apply(notice('s1'), 0);
+  expect(state().toasts.map((t) => t.siteId)).toEqual(['s1']);
+  state().setViewedSite(null);
+  state().apply(notice('s2', 'later'), 0);
+  expect(state().toasts.map((t) => t.siteId)).toEqual(['s1', 's2']);
 });
 
 test('summary without a notice only replaces the sites', () => {

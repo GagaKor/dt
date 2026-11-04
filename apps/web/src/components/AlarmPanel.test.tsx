@@ -157,8 +157,29 @@ test('a failed acknowledgement keeps the alarm and shows an error', async () => 
   expect(screen.getByTestId('alarm-item')).toBeInTheDocument();
 });
 
-test('shows an empty state for another site or no alarms', () => {
+test('shows the empty state when the site has no alarms', () => {
   setup([]);
+  expect(screen.queryByTestId('alarm-item')).toBeNull();
+  expect(screen.getByText('No unacknowledged alarms.')).toBeInTheDocument();
+});
+
+test('ignores alarms the store holds for another site', () => {
+  useRealtimeStore.getState().apply(
+    {
+      type: 'snapshot',
+      siteId: 's2',
+      objects: [],
+      alarms: [alarm({ siteId: 's2' })],
+      sites: [],
+    },
+    0,
+  );
+  expect(useRealtimeStore.getState().alarms.size).toBe(1);
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <AlarmPanel siteId="s1" />
+    </QueryClientProvider>,
+  );
   expect(screen.queryByTestId('alarm-item')).toBeNull();
   expect(screen.getByText('No unacknowledged alarms.')).toBeInTheDocument();
 });

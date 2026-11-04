@@ -16,8 +16,10 @@ export type Toast = NewAlarmNotice & { id: string };
 export const MAX_TOASTS = 5;
 
 export interface RealtimeState {
-  /** Site whose objects and alarms the store holds. */
+  /** Subscribed site: the one whose objects and alarms the store holds. */
   siteId: string | null;
+  /** Site whose monitor or dashboard is open; its new alarms need no toast. */
+  viewedSiteId: string | null;
   objects: Map<string, ClientObject>;
   alarms: Map<string, Alarm>;
   /** Unacknowledged counts of every site. */
@@ -31,6 +33,7 @@ export interface RealtimeState {
   dismissToast(id: string): void;
   /** Switches to a site before its snapshot arrives, dropping the previous site's data. */
   watch(siteId: string): void;
+  setViewedSite(siteId: string | null): void;
   reject(siteId: string): void;
   setStatus(status: RealtimeStatus): void;
   reset(): void;
@@ -41,6 +44,7 @@ export const realtimeNow = (): number => performance.now();
 
 const initial = () => ({
   siteId: null,
+  viewedSiteId: null,
   objects: new Map<string, ClientObject>(),
   alarms: new Map<string, Alarm>(),
   sites: [],
@@ -93,7 +97,7 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
       case 'summary': {
         const n = msg.newAlarm;
         const toast =
-          n && n.siteId !== s.siteId && !s.toasts.some((t) => t.id === n.alarmId)
+          n && n.siteId !== s.viewedSiteId && !s.toasts.some((t) => t.id === n.alarmId)
             ? { ...n, id: n.alarmId }
             : null;
         set(
@@ -130,6 +134,10 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
       return;
     }
     set({ siteId, objects: new Map(), alarms: new Map(), rejectedSiteId });
+  },
+
+  setViewedSite(siteId) {
+    if (get().viewedSiteId !== siteId) set({ viewedSiteId: siteId });
   },
 
   reject(siteId) {

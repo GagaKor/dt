@@ -1,11 +1,12 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, type ReactNode } from 'react';
+import { useMatch } from 'react-router';
 import { kpiKey, meKey, useSites } from '../api/queries';
 import { connectRealtime, realtimeUrl, type RealtimeConnection } from './socket';
 import { realtimeNow, useRealtimeStore } from './store';
 
 export interface RealtimeProviderProps {
-  /** Site in the current URL, if any. */
+  /** Site in the current URL, if any (also settings pages of a site). */
   siteId?: string;
   children: ReactNode;
 }
@@ -31,6 +32,8 @@ export function RealtimeProvider({ siteId, children }: RealtimeProviderProps) {
   const qc = useQueryClient();
   const sites = useSites();
   const connection = useRef<RealtimeConnection | null>(null);
+  // Only a site's own pages count as watching it; its settings pages do not.
+  const viewedSiteId = useMatch('/sites/:siteId/*')?.params.siteId ?? null;
   const target = streamedSiteId(
     siteId,
     sites.data?.map((s) => s.id),
@@ -62,6 +65,10 @@ export function RealtimeProvider({ siteId, children }: RealtimeProviderProps) {
       store().reset();
     };
   }, [qc]);
+
+  useEffect(() => {
+    useRealtimeStore.getState().setViewedSite(viewedSiteId);
+  }, [viewedSiteId]);
 
   useEffect(() => {
     if (!target) return;
