@@ -8,7 +8,7 @@ dt는 Docker 이미지 하나(화면 정적 파일 + API 서버)와 PostgreSQL�
 
 | 변수 | 기본값 | 설명 |
 |---|---|---|
-| `PORT` | `8080` | 서버 포트 |
+| `PORT` | `8080` | 서버 포트. compose에서는 호스트에 공개하는 포트이고, 컨테이너 안의 앱은 항상 `8080`을 쓴다 |
 | `HOST` | `0.0.0.0` | 바인드 주소 |
 | `LOG_LEVEL` | `info` | 로그 레벨 |
 | `DB_DRIVER` | `pg` | `pg`(PostgreSQL) 또는 `pglite`(내장 DB, 개발용). `.env.example`은 개발 편의로 `pglite`이고, compose가 `pg`로 덮어쓴다 |
@@ -17,7 +17,7 @@ dt는 Docker 이미지 하나(화면 정적 파일 + API 서버)와 PostgreSQL�
 | `STORAGE_DRIVER` | `local` | `local`(로컬 디스크) 또는 `s3`(S3 호환 저장소) |
 | `STORAGE_LOCAL_DIR` | `./data/storage` | `local`일 때 모델 파일 위치. compose는 `/data/storage` 볼륨을 쓴다 |
 | `S3_ENDPOINT` | 없음 | `s3`일 때 엔드포인트. AWS S3는 비워 둔다 |
-| `S3_REGION` | 없음 | 리전. 예: `us-east-1` |
+| `S3_REGION` | `us-east-1` | 리전 |
 | `S3_BUCKET` | 없음 | 버킷 이름(미리 만들어 둔다) |
 | `S3_ACCESS_KEY_ID` | 없음 | 액세스 키 |
 | `S3_SECRET_ACCESS_KEY` | 없음 | 시크릿 키 |
@@ -43,7 +43,7 @@ cp .env.example .env
 docker compose up -d
 ```
 
-`http://<서버>:8080`으로 접속한다. compose는 앱과 PostgreSQL 17을 띄우고, 앱은 시작할 때 마이그레이션을 적용한다. 데이터는 이름 있는 볼륨에 저장된다.
+`http://<서버>:8080`(`.env`의 `PORT`를 바꿨다면 그 포트)으로 접속한다. compose는 앱과 PostgreSQL 17을 띄우고, 앱은 시작할 때 마이그레이션을 적용한다. 데이터는 이름 있는 볼륨에 저장된다.
 
 | 볼륨 | 내용 |
 |---|---|
@@ -62,7 +62,7 @@ docker compose up -d
 docker compose --profile s3 up -d
 ```
 
-`.env`에 다음을 넣고 앱을 다시 띄운다. 버킷 `dt-data`는 `minio-init` 컨테이너가 만든다.
+`.env`에 다음을 넣고 앱을 다시 띄운다. 버킷 `dt-data`는 `minio-init` 컨테이너가 만든다. MinIO 포트(`9000`, 콘솔 `9001`)는 `127.0.0.1`에만 열리므로 같은 PC에서만 접속된다. 앱은 compose 내부 네트워크로 `minio:9000`에 접속한다.
 
 ```
 STORAGE_DRIVER=s3
@@ -74,7 +74,7 @@ S3_SECRET_ACCESS_KEY=dtminio-secret
 S3_FORCE_PATH_STYLE=true
 ```
 
-> 주의: compose의 MinIO는 `bitnamilegacy/minio` 이미지를 쓰며 **로컬 시험용**이다. 업스트림 `minio/minio` 이미지는 Docker Hub에 더 이상 게시되지 않아서 서버와 `mc` 클라이언트가 함께 들어 있는 이 이미지를 골랐다. 이 이미지는 더 이상 갱신되지 않고 계정 정보도 예시 값이므로 운영에 쓰지 않는다. 운영에서는 `S3_*`를 관리되는 S3 호환 서비스에 연결한다.
+> 주의: compose의 MinIO는 `bitnamilegacy/minio` 이미지(태그 `2025.5.24-debian-12-r5`로 고정)를 쓰며 **로컬 시험용**이다. 업스트림 `minio/minio` 이미지는 Docker Hub에 더 이상 게시되지 않아서 서버와 `mc` 클라이언트가 함께 들어 있는 이 이미지를 골랐다. 이 이미지는 더 이상 갱신되지 않고 계정 정보도 예시 값이므로 운영에 쓰지 않는다. 운영에서는 `S3_*`를 관리되는 S3 호환 서비스에 연결한다.
 
 ### 업데이트
 
@@ -135,6 +135,31 @@ dt는 HTTP만 낸다. HTTPS가 필요하면 앞에 리버스 프록시(nginx, Ca
 
 위 수치는 한 대의 개발 노트북에서 잰 값이므로 참고용이다. 운영 환경에서 `pnpm sim load --url <주소>`로 다시 확인한다.
 
+### 데이터 보존
+
+v1은 이벤트와 알람을 **지우지 않고 계속 쌓는다.** 자동 정리 기능은 없다.
+
+- 이벤트 메시지 하나가 `events` 테이블에 한 행으로 남는다. 초당 20건이면 하루에 약 170만 행(20 × 86,400 = 1,728,000)이다.
+- `alarms`는 이어지는 이벤트를 한 행으로 묶으므로 대개 훨씬 적게 늘지만, 묶이지 않는 이벤트가 많으면 같은 속도로 는다.
+- 대시보드 통계와 알람 목록은 `alarms`에서 계산한다. `events`는 `eventId` 중복 제거에만 쓰므로 오래된 행을 지워도 화면은 바뀌지 않는다. 다만 지운 기간의 `eventId`가 다시 오면 새 이벤트로 처리된다.
+
+디스크 사용량을 보고 필요하면 주기적으로(예: cron) 정리한다. 아래는 90일보다 오래된 이벤트를 지우는 예다. `90`을 원하는 보관 일수로 바꾼다.
+
+```bash
+docker compose exec -T db psql -U dt dt -c \
+  "DELETE FROM events WHERE occurred_at < now() - interval '90 days';"
+```
+
+통계에 쓰이는 알람까지 줄여야 하면, 확인된 오래된 알람을 지운다. 그 알람의 이벤트도 함께 지워지고(`ON DELETE CASCADE`), 그 기간의 통계도 사라진다.
+
+```sql
+DELETE FROM alarms
+WHERE acknowledged_at IS NOT NULL
+  AND last_occurred_at < now() - interval '365 days';
+```
+
+`events`의 시각 컬럼에는 인덱스가 없어서 테이블이 크면 삭제가 오래 걸린다. 사용이 적은 시간에 돌린다. 지운 공간은 PostgreSQL의 autovacuum이 다시 쓴다.
+
 ### 알려진 제한
 
 - **서버 인스턴스는 하나다.** 객체 위치와 실시간 전달이 서버 메모리에 있어서 여러 대로 늘릴 수 없다.
@@ -142,3 +167,4 @@ dt는 HTTP만 낸다. HTTPS가 필요하면 앞에 리버스 프록시(nginx, Ca
 - 장치 온라인 상태 감시는 없다.
 - 관리자 계정은 하나다.
 - 알람 상태는 미확인 / 확인 두 단계다.
+- 이벤트와 알람을 자동으로 지우지 않는다(위 '데이터 보존').

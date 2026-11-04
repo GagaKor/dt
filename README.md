@@ -42,9 +42,10 @@ The MinIO image (`bitnamilegacy/minio`) is for local testing only. In production
 
 ## Try it with sample data
 
-With the server running (compose, or `pnpm dev` below), create a sample site with a 3-floor office model, devices and an integration key, then send simulated traffic:
+With the server running (compose, or `pnpm dev` below), create a sample site with a 3-floor office model, devices and an integration key, then send simulated traffic. The simulator runs on the host, so besides Docker this step needs Node.js 22 or later and pnpm via corepack:
 
 ```bash
+corepack enable                                          # once; provides pnpm
 pnpm install
 ADMIN_PASSWORD=<your admin password> pnpm sim seed      # writes .sim.json, prints the monitor URL
 pnpm sim run                                             # moving people, intrusion and sensor events

@@ -42,9 +42,10 @@ MinIO 이미지(`bitnamilegacy/minio`)는 **로컬 시험용**이다. 운영에�
 
 ## 샘플로 체험하기
 
-서버가 떠 있는 상태(compose 또는 아래 `pnpm dev`)에서, 3층 사무실 모델과 장치, 연동 키가 있는 샘플 현장을 만들고 시뮬레이션 데이터를 보낸다.
+서버가 떠 있는 상태(compose 또는 아래 `pnpm dev`)에서, 3층 사무실 모델과 장치, 연동 키가 있는 샘플 현장을 만들고 시뮬레이션 데이터를 보낸다. 시뮬레이터는 호스트에서 돌기 때문에 이 단계에는 Docker 말고도 Node.js 22 이상과 corepack으로 쓰는 pnpm이 필요하다.
 
 ```bash
+corepack enable                                      # 한 번만. pnpm을 쓸 수 있게 한다
 pnpm install
 ADMIN_PASSWORD=<관리자 비밀번호> pnpm sim seed      # .sim.json을 만들고 모니터링 주소를 출력한다
 pnpm sim run                                         # 움직이는 사람, 침입·센서 이벤트
