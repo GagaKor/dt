@@ -1,0 +1,8 @@
+node_modules
+dist
+data
+pnpm-lock.yaml
+e2e/artifacts
+test-results
+.superpowers
+docs
