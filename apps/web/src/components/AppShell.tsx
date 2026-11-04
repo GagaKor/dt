@@ -5,10 +5,11 @@ import { useTranslation } from 'react-i18next';
 import { apiFetch } from '../api/client';
 import { useSites } from '../api/queries';
 import { setLang, type Lang } from '../i18n';
+import { useRealtimeStore } from '../realtime/store';
+import { Toasts } from './Toasts';
 
 export interface AppShellProps {
   siteId?: string;
-  badgeCount: number;
   children: ReactNode;
 }
 
@@ -19,8 +20,10 @@ const tabClass = ({ isActive }: { isActive: boolean }) =>
       : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'
   }`;
 
-export function AppShell({ siteId, badgeCount, children }: AppShellProps) {
+export function AppShell({ siteId, children }: AppShellProps) {
   const { t, i18n } = useTranslation();
+  // Every site's unacknowledged alarms, not only the watched one.
+  const badgeCount = useRealtimeStore((s) => s.sites.reduce((n, x) => n + x.unacked, 0));
   const navigate = useNavigate();
   const qc = useQueryClient();
   const sites = useSites();
@@ -101,6 +104,7 @@ export function AppShell({ siteId, badgeCount, children }: AppShellProps) {
         </div>
       </header>
       <main className="min-h-0 flex-1 overflow-auto">{children}</main>
+      <Toasts />
     </div>
   );
 }

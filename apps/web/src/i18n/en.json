@@ -158,5 +158,35 @@
       "load": "Could not load devices.",
       "unknown": "Could not save the device. Please try again."
     }
+  },
+  "monitor": {
+    "view3d": "3D view",
+    "noModel": "This site has no 3D model yet. Upload one in the site settings.",
+    "modelError": "Could not load the 3D model.",
+    "notFound": "This site does not exist.",
+    "kpi": {
+      "unacked": "Unacknowledged alarms",
+      "today": "Events today",
+      "objects": "Visible objects"
+    },
+    "status": {
+      "connecting": "Connecting",
+      "open": "Live",
+      "closed": "Disconnected"
+    },
+    "alarms": {
+      "title": "Alarms",
+      "empty": "No unacknowledged alarms.",
+      "partial": "Showing {{shown}} of {{total}}",
+      "noFloor": "No floor",
+      "addNote": "Add note",
+      "note": "Note (optional)",
+      "ack": "Acknowledge",
+      "ackError": "Could not acknowledge the alarm. Please try again."
+    }
+  },
+  "toast": {
+    "newAlarm": "New {{severity}} alarm",
+    "dismiss": "Dismiss"
   }
 }

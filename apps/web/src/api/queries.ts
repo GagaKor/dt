@@ -1,14 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
+  Alarm,
   Device,
   DeviceCreate,
   DevicePatch,
   Floor,
   FloorInput,
   IntegrationKey,
+  Kpi,
   Severity,
   Site,
 } from '@dt/shared';
+import { realtimeNow, useRealtimeStore } from '../realtime/store';
 import { apiFetch } from './client';
 
 export const meKey = ['me'] as const;
@@ -132,5 +135,37 @@ export function useRevokeKey() {
   return useMutation({
     mutationFn: (id: string) => apiFetch<void>(`/api/integration-keys/${id}`, { method: 'DELETE' }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['integration-keys'] }),
+  });
+}
+
+export const KPI_REFRESH_MS = 10_000;
+export const kpiKey = (siteId: string | undefined) => ['kpi', siteId] as const;
+
+export function useKpi(siteId: string | undefined) {
+  return useQuery({
+    queryKey: kpiKey(siteId),
+    queryFn: () => {
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const q = new URLSearchParams({ siteId: siteId!, tz });
+      return apiFetch<Kpi>(`/api/stats/kpi?${q}`);
+    },
+    enabled: !!siteId,
+    refetchInterval: KPI_REFRESH_MS,
+  });
+}
+
+export function useAlarmsAck() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { id: string; note?: string }) =>
+      apiFetch<Alarm>(`/api/alarms/${encodeURIComponent(v.id)}/ack`, {
+        method: 'POST',
+        json: v.note ? { note: v.note } : {},
+      }),
+    onSuccess: (alarm) => {
+      // Do not wait for the realtime echo to drop the alarm from the panel.
+      useRealtimeStore.getState().apply({ type: 'alarm', alarm, created: false }, realtimeNow());
+      void qc.invalidateQueries({ queryKey: kpiKey(alarm.siteId) });
+    },
   });
 }

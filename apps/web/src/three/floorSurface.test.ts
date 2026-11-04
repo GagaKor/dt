@@ -1,7 +1,7 @@
 import type { Floor } from '@dt/shared';
 import { BoxGeometry, Group, Mesh, MeshBasicMaterial } from 'three';
 import { expect, test } from 'vitest';
-import { createFloorSurfaceResolver } from './floorSurface';
+import { createFloorSurfaceResolver, createFloorYResolver } from './floorSurface';
 
 const SLAB_THICKNESS = 0.2;
 
@@ -73,4 +73,17 @@ test('results are cached per 0.5 m cell', () => {
 test('unknown floor id falls back to 0', () => {
   const surf = createFloorSurfaceResolver(slabs([0]), [floor('f1', 2, 4)]);
   expect(surf('nope', 0, 0)).toBe(0);
+});
+
+test('floor Y resolver: surface with a model, floor base without one, null when unknown', () => {
+  const floors = [floor('f1', 0, 4), floor('f2', 4, 8)];
+  const root = new Group();
+  root.add(box(0, 0, 4, 4.3));
+  const withModel = createFloorYResolver(root, floors);
+  expect(withModel('f2', 0, 0)).toBeCloseTo(4.3, 3);
+  expect(withModel('f1', 0, 0)).toBe(0);
+  expect(withModel('gone', 0, 0)).toBeNull();
+  const withoutModel = createFloorYResolver(null, floors);
+  expect(withoutModel('f2', 0, 0)).toBe(4);
+  expect(withoutModel('gone', 0, 0)).toBeNull();
 });

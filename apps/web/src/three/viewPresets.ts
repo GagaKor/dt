@@ -13,6 +13,7 @@ const MARGIN = 1.15;
 const OBLIQUE_DIR = new Vector3(0.45, 0.75, 1).normalize();
 // A tiny southward offset keeps the controls' azimuth at 0, i.e. plan north up.
 const TOP_NUDGE_M = 1e-3;
+const FOCUS_BOX = new Vector3(12, 4, 12);
 
 function fitDistance(extent: number): number {
   return (extent / 2 / Math.tan(((VIEW_FOV_DEG / 2) * Math.PI) / 180)) * MARGIN;
@@ -30,6 +31,11 @@ export function obliqueView(bounds: Box3): ViewPose {
     .multiplyScalar(fitDistance(radius * 2))
     .add(target);
   return { position, target };
+}
+
+/** Oblique close-up of the area around a model point, e.g. a device or an alarm. */
+export function focusView(point: readonly [number, number, number]): ViewPose {
+  return obliqueView(new Box3().setFromCenterAndSize(new Vector3(...point), FOCUS_BOX));
 }
 
 export function topView(bounds: Box3, f: FloorRange | null): ViewPose {

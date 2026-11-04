@@ -158,5 +158,35 @@
       "load": "장치 목록을 불러오지 못했습니다.",
       "unknown": "장치를 저장하지 못했습니다. 다시 시도해 주세요."
     }
+  },
+  "monitor": {
+    "view3d": "3D 화면",
+    "noModel": "이 현장에는 아직 3D 모델이 없습니다. 현장 설정에서 모델을 올려 주세요.",
+    "modelError": "3D 모델을 불러오지 못했습니다.",
+    "notFound": "존재하지 않는 현장입니다.",
+    "kpi": {
+      "unacked": "미확인 알람",
+      "today": "오늘 이벤트",
+      "objects": "보이는 객체"
+    },
+    "status": {
+      "connecting": "연결 중",
+      "open": "실시간",
+      "closed": "연결 끊김"
+    },
+    "alarms": {
+      "title": "알람",
+      "empty": "미확인 알람이 없습니다.",
+      "partial": "{{total}}건 중 {{shown}}건 표시",
+      "noFloor": "층 없음",
+      "addNote": "메모 추가",
+      "note": "메모 (선택)",
+      "ack": "확인",
+      "ackError": "알람을 확인 처리하지 못했습니다. 다시 시도해 주세요."
+    }
+  },
+  "toast": {
+    "newAlarm": "새 {{severity}} 알람",
+    "dismiss": "닫기"
   }
 }

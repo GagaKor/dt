@@ -4,7 +4,7 @@ import type { ThreeEvent } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router';
-import { Box3, Raycaster, Vector3, type Group, type Object3D } from 'three';
+import { Raycaster, type Box3, type Group, type Object3D } from 'three';
 import {
   useCreateDevice,
   useDeleteDevice,
@@ -26,7 +26,7 @@ import { FloorSelector } from '../../three/FloorSelector';
 import { ModelLayers } from '../../three/ModelLayers';
 import { SiteCanvas } from '../../three/SiteCanvas';
 import { useSiteModel } from '../../three/useSiteModel';
-import { obliqueView, topView, type ViewPose } from '../../three/viewPresets';
+import { focusView, obliqueView, topView, type ViewPose } from '../../three/viewPresets';
 import {
   createBody,
   draftAfterGizmo,
@@ -40,18 +40,11 @@ import {
   patchBody,
   pickPlacement,
   type Editing,
-  type Position,
   type Transition,
 } from './deviceEditorLogic';
 
 type Tool = 'select' | DeviceType;
 type GizmoMode = 'translate' | 'rotate';
-
-const FOCUS_BOX = new Vector3(12, 4, 12);
-
-function focusView(position: Position): ViewPose {
-  return obliqueView(new Box3().setFromCenterAndSize(new Vector3(...position), FOCUS_BOX));
-}
 
 interface GizmoProps {
   target: Object3D;

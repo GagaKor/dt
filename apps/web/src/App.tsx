@@ -5,9 +5,14 @@ import { useSites } from './api/queries';
 import { AppShell } from './components/AppShell';
 import { RequireAuth } from './components/RequireAuth';
 import { LoginPage } from './pages/LoginPage';
-import { DashboardPage, MonitorPage } from './pages/Placeholders';
+import { DashboardPage } from './pages/Placeholders';
 import { KeysPage } from './pages/settings/KeysPage';
 import { SitesPage } from './pages/settings/SitesPage';
+import { RealtimeProvider } from './realtime/RealtimeProvider';
+
+const MonitorPage = lazy(() =>
+  import('./pages/MonitorPage').then((m) => ({ default: m.MonitorPage })),
+);
 
 const SiteDetailPage = lazy(() =>
   import('./pages/settings/SiteDetailPage').then((m) => ({ default: m.SiteDetailPage })),
@@ -20,9 +25,11 @@ function ShellLayout() {
   const { siteId } = useParams();
   return (
     <RequireAuth>
-      <AppShell siteId={siteId} badgeCount={0}>
-        <Outlet />
-      </AppShell>
+      <RealtimeProvider siteId={siteId}>
+        <AppShell siteId={siteId}>
+          <Outlet />
+        </AppShell>
+      </RealtimeProvider>
     </RequireAuth>
   );
 }
@@ -46,7 +53,14 @@ export function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route element={<ShellLayout />}>
         <Route index element={<HomeRedirect />} />
-        <Route path="/sites/:siteId/monitor" element={<MonitorPage />} />
+        <Route
+          path="/sites/:siteId/monitor"
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <MonitorPage />
+            </Suspense>
+          }
+        />
         <Route path="/sites/:siteId/dashboard" element={<DashboardPage />} />
         <Route path="/settings/sites" element={<SitesPage />} />
         <Route
