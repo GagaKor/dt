@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import cookie from '@fastify/cookie';
+import { readSessionFromCookieHeader, verifySessionCookie } from '../src/auth/session.js';
 import { loginCookie, createTestApp, type TestApp } from './helpers.js';
 
 describe('admin auth', () => {
@@ -80,5 +82,44 @@ describe('admin auth', () => {
     expect(c).toBeDefined();
     expect(c?.value).toBe('');
     expect(c?.maxAge === 0 || (c?.expires && c.expires.getTime() < Date.now())).toBe(true);
+  });
+
+  describe('cookie helpers', () => {
+    const secret = 'test-session-secret-0123456789abcdef';
+    const sign = (v: string, sec = secret) => cookie.sign(v, sec);
+    const now = () => t.clock.now();
+
+    it('readSessionFromCookieHeader accepts the Set-Cookie value inside a multi-cookie header', async () => {
+      const res = await login('test-password');
+      const setCookie = String(res.headers['set-cookie']);
+      const pair = setCookie.split(';')[0];
+      expect(pair).toContain('%');
+      const header = `other=x; ${pair}; y=z`;
+      expect(readSessionFromCookieHeader(header, secret, now())).toEqual({ username: 'admin' });
+    });
+
+    it('readSessionFromCookieHeader returns null without a header or dt_session', () => {
+      expect(readSessionFromCookieHeader(undefined, secret, now())).toBeNull();
+      expect(readSessionFromCookieHeader('other=x; y=z', secret, now())).toBeNull();
+    });
+
+    it('verifySessionCookie rejects forged exp, wrong secret, malformed JSON', () => {
+      const exp = now().getTime() + 1000;
+      const good = sign(JSON.stringify({ u: 'admin', exp }));
+      expect(verifySessionCookie(good, secret, now())).toEqual({ username: 'admin' });
+
+      const sig = good.slice(good.lastIndexOf('.'));
+      const forged = JSON.stringify({ u: 'admin', exp: exp + 86_400_000 }) + sig;
+      expect(verifySessionCookie(forged, secret, now())).toBeNull();
+
+      expect(
+        verifySessionCookie(
+          sign(JSON.stringify({ u: 'admin', exp }), 'other-secret-0123456789abcdef!!'),
+          secret,
+          now(),
+        ),
+      ).toBeNull();
+      expect(verifySessionCookie(sign('{not json'), secret, now())).toBeNull();
+    });
   });
 });

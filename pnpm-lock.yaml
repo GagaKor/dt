@@ -208,6 +208,9 @@ importers:
       '@fastify/swagger-ui':
         specifier: ^6.1.2
         version: 6.1.2
+      cookie:
+        specifier: ^2.0.1
+        version: 2.0.1
       drizzle-orm:
         specifier: ^0.45.4
         version: 0.45.4(@electric-sql/pglite@0.5.14)(@types/pg@8.23.1)(pg@8.23.1)

@@ -1,5 +1,6 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
 import cookie from '@fastify/cookie';
+import { parseCookie } from 'cookie';
 import type { FastifyInstance, preHandlerAsyncHookHandler } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
@@ -37,6 +38,15 @@ export function verifySessionCookie(
   const parsed = payloadSchema.safeParse(json);
   if (!parsed.success || parsed.data.exp <= now.getTime()) return null;
   return { username: parsed.data.u };
+}
+
+export function readSessionFromCookieHeader(
+  header: string | undefined,
+  secret: string,
+  now: Date,
+): { username: string } | null {
+  if (!header) return null;
+  return verifySessionCookie(parseCookie(header)[SESSION_COOKIE], secret, now);
 }
 
 function safeEqual(a: string, b: string): boolean {
