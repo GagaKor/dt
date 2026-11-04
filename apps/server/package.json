@@ -19,6 +19,7 @@
     "tsx": "^4.23.15"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1161.0",
     "@dt/shared": "workspace:*",
     "@electric-sql/pglite": "^0.5.14",
     "@fastify/cookie": "^11.1.5",
