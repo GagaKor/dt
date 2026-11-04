@@ -1,0 +1,19 @@
+{
+  "name": "@dt/sample-model",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json",
+    "build:sample": "tsx src/cli.ts"
+  },
+  "dependencies": {
+    "@gltf-transform/core": "^4.5.1"
+  },
+  "devDependencies": {
+    "gltf-validator": "2.0.0-dev.3.10",
+    "tsx": "^4.23.15"
+  }
+}
