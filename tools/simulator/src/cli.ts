@@ -2,10 +2,12 @@ import { parseArgs } from 'node:util';
 import { ingest } from './api';
 import { configFile, readConfig, writeConfig } from './config';
 import { loadTest } from './load';
+import { DEFAULT_SITE_NAME, validateSimConfig } from './plan';
 import { seed } from './seed';
 import { createScenarioState, scenarioTick } from './scenarios';
 
 const USAGE = `usage: pnpm sim <seed|run|load> [--url URL] [--config FILE]
+  seed [--site-name NAME]  (default "Sample Office")
   seed                  create site, model, floors, devices and an integration key; writes .sim.json
   run [--seconds N] [--people 6]   send scenario messages once per second (N omitted: until Ctrl+C)
   load [--seconds 30]   500 positions/s + 20 events/s, prints latency percentiles`;
@@ -18,6 +20,7 @@ async function main(): Promise<number> {
       config: { type: 'string' },
       seconds: { type: 'string' },
       people: { type: 'string' },
+      'site-name': { type: 'string' },
     },
   });
   const [command] = positionals;
@@ -33,7 +36,12 @@ async function main(): Promise<number> {
     const url = values.url ?? process.env.DT_URL ?? 'http://localhost:8080';
     const password = process.env.ADMIN_PASSWORD;
     if (!password) throw new Error('ADMIN_PASSWORD is required');
-    const cfg = await seed(url, process.env.ADMIN_USERNAME ?? 'admin', password);
+    const cfg = await seed(
+      url,
+      process.env.ADMIN_USERNAME ?? 'admin',
+      password,
+      values['site-name'] ?? DEFAULT_SITE_NAME,
+    );
     writeConfig(file, cfg);
     console.log(`[seed] wrote ${file}`);
     console.log(`[seed] monitor: ${url}/sites/${cfg.siteId}/monitor`);
@@ -43,6 +51,7 @@ async function main(): Promise<number> {
   if (command === 'run' || command === 'load') {
     const cfg = readConfig(file);
     if (values.url) cfg.url = values.url;
+    validateSimConfig(cfg, command === 'run');
     const seconds = num(values.seconds, command === 'load' ? 30 : undefined);
     if (command === 'load') return loadTest(cfg, seconds!);
 
