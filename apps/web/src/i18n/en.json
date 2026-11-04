@@ -1,0 +1,29 @@
+{
+  "app": { "name": "dt", "loading": "Loading..." },
+  "login": {
+    "title": "Sign in",
+    "username": "Username",
+    "password": "Password",
+    "submit": "Sign in",
+    "invalid": "Invalid username or password",
+    "error": "Could not sign in. Please try again."
+  },
+  "nav": {
+    "monitor": "Monitor",
+    "dashboard": "Dashboard",
+    "settings": "Settings",
+    "site": "Site",
+    "selectSite": "Select a site",
+    "alarms": "Unacknowledged alarms",
+    "language": "Language",
+    "logout": "Log out"
+  },
+  "pages": {
+    "monitor": "Monitor",
+    "dashboard": "Dashboard",
+    "sites": "Sites",
+    "siteDetail": "Site settings",
+    "devices": "Devices",
+    "keys": "Integration keys"
+  }
+}

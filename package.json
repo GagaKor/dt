@@ -13,7 +13,7 @@
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
     "lint": "eslint . && prettier --check .",
-    "dev": "echo 'dev: not wired yet' && exit 1",
+    "dev": "pnpm --parallel --filter @dt/server --filter @dt/web dev",
     "sim": "echo 'sim: not wired yet' && exit 1",
     "e2e": "echo 'e2e: not wired yet' && exit 1"
   },

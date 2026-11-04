@@ -1,0 +1,29 @@
+{
+  "app": { "name": "dt", "loading": "불러오는 중..." },
+  "login": {
+    "title": "로그인",
+    "username": "아이디",
+    "password": "비밀번호",
+    "submit": "로그인",
+    "invalid": "아이디 또는 비밀번호가 올바르지 않습니다",
+    "error": "로그인하지 못했습니다. 다시 시도해 주세요."
+  },
+  "nav": {
+    "monitor": "모니터",
+    "dashboard": "대시보드",
+    "settings": "설정",
+    "site": "현장",
+    "selectSite": "현장 선택",
+    "alarms": "미확인 알람",
+    "language": "언어",
+    "logout": "로그아웃"
+  },
+  "pages": {
+    "monitor": "모니터",
+    "dashboard": "대시보드",
+    "sites": "현장",
+    "siteDetail": "현장 설정",
+    "devices": "장치",
+    "keys": "연동 키"
+  }
+}

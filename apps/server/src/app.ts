@@ -1,5 +1,7 @@
+import fastifyStatic from '@fastify/static';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
+import { resolve } from 'node:path';
 import Fastify, { type FastifyInstance } from 'fastify';
 import {
   hasZodFastifySchemaValidationErrors,
@@ -73,9 +75,14 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
     req.log.error({ err }, 'unhandled error');
     return reply.status(500).send({ code: 'internal_error', message: 'Internal server error' });
   });
-  app.setNotFoundHandler((_req, reply) =>
-    reply.status(404).send({ code: 'not_found', message: 'Route not found' }),
-  );
+  const webDist = deps.config.WEB_DIST_DIR;
+  app.setNotFoundHandler((req, reply) => {
+    if (webDist && req.method === 'GET' && !req.url.startsWith('/api/'))
+      return reply.sendFile('index.html');
+    return reply.status(404).send({ code: 'not_found', message: 'Route not found' });
+  });
+
+  if (webDist) await app.register(fastifyStatic, { root: resolve(webDist) });
 
   await app.register(swagger, {
     openapi: { info: { title: 'dt API', version: '0.1.0' } },

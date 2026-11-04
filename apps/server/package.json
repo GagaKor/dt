@@ -5,7 +5,7 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/main.ts",
+    "dev": "tsx watch --env-file-if-exists=../../.env src/main.ts",
     "build": "tsup",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
@@ -23,6 +23,7 @@
     "@electric-sql/pglite": "^0.5.14",
     "@fastify/cookie": "^11.1.5",
     "@fastify/multipart": "^10.1.7",
+    "@fastify/static": "^10.1.8",
     "@fastify/swagger": "^9.9.3",
     "@fastify/swagger-ui": "^6.1.2",
     "@fastify/websocket": "^11.3.6",
