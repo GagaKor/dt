@@ -105,5 +105,57 @@
     "revoke": "Revoke",
     "revoked": "Revoked",
     "revokeConfirm": "Revoke this key?"
+  },
+  "devices": {
+    "manage": "Place devices",
+    "backToSite": "Back to site settings",
+    "toolbar": "Editor tools",
+    "tool": {
+      "select": "Select",
+      "placeCamera": "Place camera",
+      "placeSensor": "Place sensor"
+    },
+    "view": {
+      "top": "Top view",
+      "oblique": "Oblique view"
+    },
+    "transform": {
+      "translate": "Move",
+      "rotate": "Rotate"
+    },
+    "selectFloorHint": "Select a floor to place devices.",
+    "placeHint": "Click the model to place the device.",
+    "noModel": "Upload a 3D model in the site settings before placing devices.",
+    "newDevice": "New device",
+    "editDevice": "Edit device",
+    "id": "Device ID",
+    "name": "Name",
+    "type": "Type",
+    "types": {
+      "camera": "Camera",
+      "sensor": "Sensor"
+    },
+    "yaw": "Yaw (°)",
+    "pitch": "Pitch (°)",
+    "hfov": "Horizontal FOV (°)",
+    "range": "Range (m)",
+    "position": "Position: x {{x}}, y {{y}} m · height {{h}} m",
+    "list": "Devices",
+    "empty": "No devices yet.",
+    "saved": "Saved",
+    "delete": "Delete",
+    "deleteConfirm": "Delete device \"{{id}}\"?",
+    "error": {
+      "invalid_id": "Use 1–64 letters, digits, '.', '_' or '-'.",
+      "required": "This field is required.",
+      "out_of_range": "Must be between {{min}} and {{max}}.",
+      "device_id_taken": "This device ID is already in use.",
+      "floor_not_in_site": "The floor does not belong to this site.",
+      "position_outside_floor": "The position is outside the floor's height range.",
+      "validation_error": "Some values are invalid.",
+      "device_not_found": "The device no longer exists.",
+      "load": "Could not load devices.",
+      "unknown": "Could not save the device. Please try again."
+    }
   }
 }

@@ -1,5 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { Device, Floor, FloorInput, IntegrationKey, Severity, Site } from '@dt/shared';
+import type {
+  Device,
+  DeviceCreate,
+  DevicePatch,
+  Floor,
+  FloorInput,
+  IntegrationKey,
+  Severity,
+  Site,
+} from '@dt/shared';
 import { apiFetch } from './client';
 
 export const meKey = ['me'] as const;
@@ -30,6 +39,38 @@ export function useDevices(siteId: string | undefined) {
     queryKey: ['sites', siteId, 'devices'],
     queryFn: () => apiFetch<Device[]>(`/api/sites/${siteId}/devices`),
     enabled: !!siteId,
+  });
+}
+
+const devicesKey = (siteId: string) => ['sites', siteId, 'devices'] as const;
+
+export function useCreateDevice(siteId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: DeviceCreate) =>
+      apiFetch<Device>('/api/devices', { method: 'POST', json: body }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: devicesKey(siteId) }),
+  });
+}
+
+export function usePatchDevice(siteId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { id: string; patch: DevicePatch }) =>
+      apiFetch<Device>(`/api/devices/${encodeURIComponent(v.id)}`, {
+        method: 'PATCH',
+        json: v.patch,
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: devicesKey(siteId) }),
+  });
+}
+
+export function useDeleteDevice(siteId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      apiFetch<void>(`/api/devices/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: devicesKey(siteId) }),
   });
 }
 

@@ -5,12 +5,15 @@ import { useSites } from './api/queries';
 import { AppShell } from './components/AppShell';
 import { RequireAuth } from './components/RequireAuth';
 import { LoginPage } from './pages/LoginPage';
-import { DashboardPage, DeviceEditorPage, MonitorPage } from './pages/Placeholders';
+import { DashboardPage, MonitorPage } from './pages/Placeholders';
 import { KeysPage } from './pages/settings/KeysPage';
 import { SitesPage } from './pages/settings/SitesPage';
 
 const SiteDetailPage = lazy(() =>
   import('./pages/settings/SiteDetailPage').then((m) => ({ default: m.SiteDetailPage })),
+);
+const DeviceEditorPage = lazy(() =>
+  import('./pages/settings/DeviceEditorPage').then((m) => ({ default: m.DeviceEditorPage })),
 );
 
 function ShellLayout() {
@@ -54,7 +57,14 @@ export function App() {
             </Suspense>
           }
         />
-        <Route path="/settings/sites/:siteId/devices" element={<DeviceEditorPage />} />
+        <Route
+          path="/settings/sites/:siteId/devices"
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <DeviceEditorPage />
+            </Suspense>
+          }
+        />
         <Route path="/settings/keys" element={<KeysPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

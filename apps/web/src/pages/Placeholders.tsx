@@ -11,4 +11,3 @@ function Placeholder({ titleKey }: { titleKey: string }) {
 
 export const MonitorPage = () => <Placeholder titleKey="pages.monitor" />;
 export const DashboardPage = () => <Placeholder titleKey="pages.dashboard" />;
-export const DeviceEditorPage = () => <Placeholder titleKey="pages.devices" />;

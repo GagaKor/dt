@@ -2,7 +2,7 @@ import { validateFloorRanges, type Floor, type FloorInput, type FloorRange } fro
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useParams } from 'react-router';
+import { Link, useParams } from 'react-router';
 import { ApiError } from '../../api/client';
 import { useFloors, useSaveFloors, useSites } from '../../api/queries';
 import { uploadModel } from '../../api/uploadModel';
@@ -96,7 +96,15 @@ export function SiteDetailPage() {
   return (
     <div className="grid gap-6 p-6 lg:grid-cols-2">
       <div className="flex flex-col gap-6">
-        <h1 className="text-xl font-semibold">{site?.name ?? t('pages.siteDetail')}</h1>
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="text-xl font-semibold">{site?.name ?? t('pages.siteDetail')}</h1>
+          <Link
+            to={`/settings/sites/${siteId}/devices`}
+            className="ml-auto rounded border border-slate-300 px-3 py-1 text-sm hover:bg-slate-100 dark:border-slate-600 dark:hover:bg-slate-700"
+          >
+            {t('devices.manage')}
+          </Link>
+        </div>
 
         <section className="flex flex-col gap-2">
           <h2 className="font-medium">{t('model.title')}</h2>

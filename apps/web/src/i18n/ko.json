@@ -105,5 +105,57 @@
     "revoke": "폐기",
     "revoked": "폐기됨",
     "revokeConfirm": "이 키를 폐기할까요?"
+  },
+  "devices": {
+    "manage": "장치 배치",
+    "backToSite": "현장 설정으로 돌아가기",
+    "toolbar": "편집 도구",
+    "tool": {
+      "select": "선택",
+      "placeCamera": "카메라 배치",
+      "placeSensor": "센서 배치"
+    },
+    "view": {
+      "top": "위에서 보기",
+      "oblique": "비스듬히 보기"
+    },
+    "transform": {
+      "translate": "이동",
+      "rotate": "회전"
+    },
+    "selectFloorHint": "장치를 배치하려면 층을 선택하세요.",
+    "placeHint": "모델을 클릭해 장치를 배치하세요.",
+    "noModel": "장치를 배치하려면 먼저 현장 설정에서 3D 모델을 올리세요.",
+    "newDevice": "새 장치",
+    "editDevice": "장치 편집",
+    "id": "장치 ID",
+    "name": "이름",
+    "type": "유형",
+    "types": {
+      "camera": "카메라",
+      "sensor": "센서"
+    },
+    "yaw": "방위각 (°)",
+    "pitch": "기울기 (°)",
+    "hfov": "수평 화각 (°)",
+    "range": "거리 (m)",
+    "position": "위치: x {{x}}, y {{y}} m · 높이 {{h}} m",
+    "list": "장치 목록",
+    "empty": "등록된 장치가 없습니다.",
+    "saved": "저장됨",
+    "delete": "삭제",
+    "deleteConfirm": "장치 \"{{id}}\"를 삭제할까요?",
+    "error": {
+      "invalid_id": "영문, 숫자, '.', '_', '-'로 1~64자를 입력하세요.",
+      "required": "값을 입력하세요.",
+      "out_of_range": "{{min}}에서 {{max}} 사이여야 합니다.",
+      "device_id_taken": "이미 사용 중인 장치 ID입니다.",
+      "floor_not_in_site": "이 현장의 층이 아닙니다.",
+      "position_outside_floor": "위치가 층의 높이 범위를 벗어났습니다.",
+      "validation_error": "올바르지 않은 값이 있습니다.",
+      "device_not_found": "장치가 더 이상 없습니다.",
+      "load": "장치 목록을 불러오지 못했습니다.",
+      "unknown": "장치를 저장하지 못했습니다. 다시 시도해 주세요."
+    }
   }
 }
