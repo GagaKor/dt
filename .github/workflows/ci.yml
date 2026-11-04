@@ -21,6 +21,8 @@ jobs:
       - name: Unit and integration tests (S3 contract tests skip without S3_TEST_ENDPOINT)
         run: pnpm test
       - run: pnpm build
+      - name: Docker image builds
+        run: docker build -t dt:ci .
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm e2e
       - name: Upload test artifacts
