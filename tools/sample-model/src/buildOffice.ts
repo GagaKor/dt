@@ -1,20 +1,49 @@
 import { Document, NodeIO, type Material, type Node } from '@gltf-transform/core';
 import { mkdir } from 'node:fs/promises';
 import { dirname } from 'node:path';
+import { officeLayout, type Box, type Group, type Part } from './layout';
 
-export type Vec3 = [number, number, number];
+export type { Vec3 } from './layout';
 
-const X0 = -20;
-const X1 = 20;
-const Z0 = -10;
-const Z1 = 10;
-const T = 0.2;
-const FLOOR_PITCH = 4;
-const WALL_H = 3.8;
-const FLOORS = 3;
+// No metallic surfaces: viewers without an environment map render them almost black.
+interface Look {
+  name: string;
+  hex: number;
+  alpha?: number;
+  roughness?: number;
+}
 
-// 24 vertices per box so each face keeps a flat normal.
-const FACES: { n: Vec3; v: [Vec3, Vec3, Vec3, Vec3] }[] = [
+const LOOKS: Record<Exclude<Part, 'carpet'>, Look> = {
+  slab: { name: 'Slab', hex: 0xc3c8d0 },
+  facade: { name: 'Facade', hex: 0xaeb6c2 },
+  mullion: { name: 'Mullion', hex: 0x5b6472, roughness: 0.6 },
+  glass: { name: 'Glass', hex: 0x9fc4e0, alpha: 0.3, roughness: 0.05 },
+  wall: { name: 'Wall', hex: 0xeef0f3 },
+  core: { name: 'Core', hex: 0xd3d7dd },
+  metal: { name: 'Metal', hex: 0xb4bbc4, roughness: 0.45 },
+  wood: { name: 'Wood', hex: 0xb98b5e, roughness: 0.7 },
+  desk: { name: 'Desk', hex: 0xe9e4da, roughness: 0.6 },
+  chair: { name: 'Chair', hex: 0x3b4350 },
+  screen: { name: 'Screen', hex: 0x1c2330, roughness: 0.3 },
+  fabric: { name: 'Fabric', hex: 0x6f8299 },
+  plant: { name: 'Plant', hex: 0x5c8a57 },
+  pot: { name: 'Pot', hex: 0x8a7a68 },
+  stair: { name: 'Stair', hex: 0xb4bac4 },
+  roof: { name: 'Roof', hex: 0x959eac },
+  equipment: { name: 'Equipment', hex: 0x9aa2ad, roughness: 0.7 },
+};
+
+/** Each floor gets its own carpet color so floors are easy to tell apart. */
+const CARPETS: Record<Exclude<Group, 'Roof'>, Look> = {
+  F1: { name: 'Carpet 1F', hex: 0xd8cdb8 },
+  F2: { name: 'Carpet 2F', hex: 0xb8cbbd },
+  F3: { name: 'Carpet 3F', hex: 0xb9c4d8 },
+};
+
+const GROUPS: Group[] = ['F1', 'F2', 'F3', 'Roof'];
+
+// One quad per face so each face keeps a flat normal. Corner flags pick min (0) or max (1) per axis.
+const FACES: { n: [number, number, number]; v: [number, number, number][]; bottom?: true }[] = [
   {
     n: [1, 0, 0],
     v: [
@@ -50,6 +79,7 @@ const FACES: { n: Vec3; v: [Vec3, Vec3, Vec3, Vec3] }[] = [
       [1, 0, 1],
       [0, 0, 1],
     ],
+    bottom: true,
   },
   {
     n: [0, 0, 1],
@@ -71,14 +101,15 @@ const FACES: { n: Vec3; v: [Vec3, Vec3, Vec3, Vec3] }[] = [
   },
 ];
 
-interface Mesh {
+interface MeshData {
   positions: number[];
   normals: number[];
   indices: number[];
 }
 
-function pushBox(mesh: Mesh, min: Vec3, max: Vec3): void {
+function pushBox(mesh: MeshData, { min, max, bottom }: Box): void {
   for (const face of FACES) {
+    if (face.bottom && !bottom) continue;
     const base = mesh.positions.length / 3;
     for (const c of face.v) {
       mesh.positions.push(c[0] ? max[0] : min[0], c[1] ? max[1] : min[1], c[2] ? max[2] : min[2]);
@@ -88,140 +119,76 @@ function pushBox(mesh: Mesh, min: Vec3, max: Vec3): void {
   }
 }
 
-function build(
-  doc: Document,
-  parent: Node | null,
-  name: string,
-  boxes: [Vec3, Vec3][],
-  material: Material,
-): Node {
-  const buffer = doc.getRoot().listBuffers()[0] ?? doc.createBuffer();
-  const mesh: Mesh = { positions: [], normals: [], indices: [] };
-  for (const [min, max] of boxes) pushBox(mesh, min, max);
+function createMaterial(doc: Document, look: Look): Material {
+  // Colors are given in sRGB; glTF base colors are linear.
+  const c = [(look.hex >> 16) & 255, (look.hex >> 8) & 255, look.hex & 255].map(
+    (v) => (v / 255) ** 2.2,
+  );
+  const m = doc
+    .createMaterial(look.name)
+    .setBaseColorFactor([c[0]!, c[1]!, c[2]!, look.alpha ?? 1])
+    .setMetallicFactor(0)
+    .setRoughnessFactor(look.roughness ?? 0.9);
+  if (look.alpha !== undefined) m.setAlphaMode('BLEND');
+  return m;
+}
+
+function createMeshNode(doc: Document, name: string, boxes: Box[], material: Material): Node {
+  const buffer = doc.getRoot().listBuffers()[0]!;
+  const data: MeshData = { positions: [], normals: [], indices: [] };
+  for (const b of boxes) pushBox(data, b);
+  const vertexCount = data.positions.length / 3;
+  const accessor = (
+    type: 'VEC3' | 'SCALAR',
+    array: Float32Array<ArrayBuffer> | Uint16Array<ArrayBuffer> | Uint32Array<ArrayBuffer>,
+  ) => doc.createAccessor().setType(type).setArray(array).setBuffer(buffer);
   const prim = doc
     .createPrimitive()
     .setMaterial(material)
-    .setAttribute(
-      'POSITION',
-      doc
-        .createAccessor()
-        .setType('VEC3')
-        .setArray(new Float32Array(mesh.positions))
-        .setBuffer(buffer),
-    )
-    .setAttribute(
-      'NORMAL',
-      doc
-        .createAccessor()
-        .setType('VEC3')
-        .setArray(new Float32Array(mesh.normals))
-        .setBuffer(buffer),
-    )
+    .setAttribute('POSITION', accessor('VEC3', new Float32Array(data.positions)))
+    .setAttribute('NORMAL', accessor('VEC3', new Float32Array(data.normals)))
     .setIndices(
-      doc
-        .createAccessor()
-        .setType('SCALAR')
-        .setArray(new Uint16Array(mesh.indices))
-        .setBuffer(buffer),
+      accessor(
+        'SCALAR',
+        vertexCount > 0xffff ? new Uint32Array(data.indices) : new Uint16Array(data.indices),
+      ),
     );
-  const node = doc.createNode(name).setMesh(doc.createMesh(name).addPrimitive(prim));
-  if (parent) parent.addChild(node);
-  else doc.getRoot().getDefaultScene()?.addChild(node);
-  return node;
+  return doc.createNode(name).setMesh(doc.createMesh(name).addPrimitive(prim));
 }
 
-export function addBox(
-  doc: Document,
-  parent: Node | null,
-  name: string,
-  min: Vec3,
-  max: Vec3,
-  material: Material,
-): Node {
-  return build(doc, parent, name, [[min, max]], material);
-}
-
-function material(doc: Document, name: string, hex: number): Material {
-  const c = [(hex >> 16) & 255, (hex >> 8) & 255, hex & 255].map((v) => (v / 255) ** 2.2);
-  return doc
-    .createMaterial(name)
-    .setBaseColorFactor([c[0]!, c[1]!, c[2]!, 1])
-    .setMetallicFactor(0)
-    .setRoughnessFactor(0.9);
-}
-
-function floorWalls(y0: number): [Vec3, Vec3][] {
-  const y1 = y0 + WALL_H;
-  const boxes: [Vec3, Vec3][] = [
-    [
-      [X0, y0, Z0],
-      [X1, y1, Z0 + T],
-    ],
-    [
-      [X0, y0, Z1 - T],
-      [X1, y1, Z1],
-    ],
-    [
-      [X0, y0, Z0 + T],
-      [X0 + T, y1, Z1 - T],
-    ],
-    [
-      [X1 - T, y0, Z0 + T],
-      [X1, y1, Z1 - T],
-    ],
-  ];
-  // Door gaps are 1 m wide, centered between the partitions (x = -10, 0, 10).
-  const gaps = [-12, -4, 4, 12].map((c) => [c - 0.5, c + 0.5] as const);
-  for (const zc of [-1.5, 1.5]) {
-    let x = X0 + T;
-    for (const [g0, g1] of gaps) {
-      boxes.push([
-        [x, y0, zc - T / 2],
-        [g0, y1, zc + T / 2],
-      ]);
-      x = g1;
-    }
-    boxes.push([
-      [x, y0, zc - T / 2],
-      [X1 - T, y1, zc + T / 2],
-    ]);
-  }
-  for (const x of [-10, 0, 10]) {
-    boxes.push([
-      [x - T / 2, y0, Z0 + T],
-      [x + T / 2, y1, -1.5 - T / 2],
-    ]);
-    boxes.push([
-      [x - T / 2, y0, 1.5 + T / 2],
-      [x + T / 2, y1, Z1 - T],
-    ]);
-  }
-  return boxes;
-}
-
+/**
+ * The sample office: one node per floor (F1-F3) and the roof, each holding one mesh per material,
+ * named `<group>_<Material>` (e.g. F2_Desk, F1_Glass, F3_Carpet).
+ */
 export function buildOfficeDocument(): Document {
   const doc = new Document();
   doc.createBuffer();
   doc.getRoot().getAsset().generator = 'dt sample-model';
-  doc.createScene('Office');
-  doc.getRoot().setDefaultScene(doc.getRoot().listScenes()[0]!);
-  const slab = material(doc, 'Slab', 0xc8ccd4);
-  const wall = material(doc, 'Wall', 0xeef0f3);
-  const roof = material(doc, 'Roof', 0x9aa3b2);
+  const scene = doc.createScene('Office');
+  doc.getRoot().setDefaultScene(scene);
 
-  for (let n = 1; n <= FLOORS; n++) {
-    const top = (n - 1) * FLOOR_PITCH;
-    addBox(doc, null, `F${n}_Slab`, [X0, top - T, Z0], [X1, top, Z1], slab);
-    build(doc, null, `F${n}_Walls`, floorWalls(top), wall);
+  const materials = new Map<string, Material>();
+  const materialFor = (look: Look) => {
+    let m = materials.get(look.name);
+    if (!m) materials.set(look.name, (m = createMaterial(doc, look)));
+    return m;
+  };
+
+  const layout = officeLayout();
+  for (const group of GROUPS) {
+    const node = doc.createNode(group);
+    scene.addChild(node);
+    const byLook = new Map<Look, Box[]>();
+    for (const b of layout) {
+      if (b.group !== group) continue;
+      const look = b.part === 'carpet' ? CARPETS[group as keyof typeof CARPETS] : LOOKS[b.part];
+      byLook.set(look, [...(byLook.get(look) ?? []), b]);
+    }
+    for (const [look, boxes] of byLook) {
+      const label = look.name.split(' ')[0]!;
+      node.addChild(createMeshNode(doc, `${group}_${label}`, boxes, materialFor(look)));
+    }
   }
-  addBox(
-    doc,
-    null,
-    'Roof',
-    [X0, FLOORS * FLOOR_PITCH - T, Z0],
-    [X1, FLOORS * FLOOR_PITCH, Z1],
-    roof,
-  );
   return doc;
 }
 
