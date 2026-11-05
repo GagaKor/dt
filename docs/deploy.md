@@ -11,7 +11,7 @@ dt는 Docker 이미지 하나(화면 정적 파일 + API 서버)와 PostgreSQL�
 | `PORT` | `8080` | 서버 포트. compose에서는 호스트에 공개하는 포트이고, 컨테이너 안의 앱은 항상 `8080`을 쓴다 |
 | `HOST` | `0.0.0.0` | 바인드 주소 |
 | `LOG_LEVEL` | `info` | 로그 레벨 |
-| `TRUST_PROXY` | `false` | 앞단 리버스 프록시가 보낸 `X-Forwarded-*` 헤더를 믿을지 정한다. `true`, 또는 프록시 주소·CIDR 목록(예: `172.16.0.0/12`). `loopback`, `linklocal`, `uniquelocal` 같은 이름도 쓸 수 있다. 주소 목록을 권장한다. 아래 [앞단 프록시와 HTTPS](#앞단-프록시와-https) 참고 |
+| `TRUST_PROXY` | `false` | 앞단 리버스 프록시가 보낸 `X-Forwarded-*` 헤더를 믿을지 정한다. `true`, 또는 쉼표로 구분한 프록시 주소·CIDR 목록(예: `172.16.0.0/12`. 넷마스크 표기는 받지 않는다). `loopback`, `linklocal`, `uniquelocal` 같은 이름도 쓸 수 있다. 주소 목록을 권장한다. 아래 [앞단 프록시와 HTTPS](#앞단-프록시와-https) 참고 |
 | `DB_DRIVER` | `pg` | `pg`(PostgreSQL) 또는 `pglite`(내장 DB, 개발용). `.env.example`은 개발 편의로 `pglite`이고, compose가 `pg`로 덮어쓴다 |
 | `DATABASE_URL` | 없음 | `DB_DRIVER=pg`일 때 필수. 예: `postgres://dt:dt@db:5432/dt` |
 | `PGLITE_DIR` | 없음 | `pglite`의 데이터 디렉터리 |
@@ -163,7 +163,7 @@ dt는 HTTP만 낸다. HTTPS가 필요하면 앞에 리버스 프록시(nginx, Ca
 
 프록시가 HTTPS를 처리하면 아래 세 가지를 한다. 하지 않으면 로그인 쿠키가 HTTPS에서도 `Secure` 없이 나간다.
 
-1. **앱 포트를 프록시만 닿게 묶는다.** 앱 포트가 외부에 열려 있으면 누구나 `X-Forwarded-*` 헤더를 꾸며 보낼 수 있다. compose에서는 `docker-compose.override.yml`을 만든다. `!override`가 없으면 compose가 기본 파일의 `8080:8080`과 합쳐서 포트가 모든 주소에 그대로 열린다(Compose 2.24.4 이상).
+1. **앱 포트를 프록시만 닿게 묶는다.** 앱 포트가 외부에 열려 있으면 누구나 `X-Forwarded-*` 헤더를 꾸며 보낼 수 있다. compose에서는 아래처럼 `docker-compose.override.yml`을 만든다. `!override` 태그는 Compose 2.24.4 이상에서 쓸 수 있다. 이 태그가 없으면 compose가 기본 파일의 `8080:8080`과 합쳐서 포트가 모든 주소에 그대로 열린다.
 
    ```yaml
    services:

@@ -27,7 +27,8 @@ function isProxyAddress(entry: string): boolean {
   const family = isIP(ip);
   if (family === 0 || rest.length > 0) return false;
   if (bits === undefined) return true;
-  return /^\d{1,3}$/.test(bits) && Number(bits) <= (family === 4 ? 32 : 128);
+  // Prefix length only (no netmask form); proxy-addr rejects /0.
+  return /^\d{1,3}$/.test(bits) && Number(bits) >= 1 && Number(bits) <= (family === 4 ? 32 : 128);
 }
 
 // Fastify `trustProxy`: true, false, or comma-separated proxy addresses/CIDRs/named ranges.

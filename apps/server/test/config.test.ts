@@ -82,7 +82,17 @@ test('TRUST_PROXY accepts boolean words in any case and named ranges', () => {
 });
 
 test('TRUST_PROXY rejects values that are not addresses, CIDRs or named ranges', () => {
-  for (const bad of ['yes', '2', '10.0.0.1/33', '10.0.0/8', 'proxy.local', '127.0.0.1,']) {
-    expect(() => loadConfig({ ...base, TRUST_PROXY: bad }), bad).toThrow(/TRUST_PROXY/);
+  const bad = [
+    'yes',
+    '2',
+    '10.0.0.1/33',
+    '10.0.0/8',
+    '0.0.0.0/0',
+    '::/0',
+    'proxy.local',
+    '127.0.0.1,',
+  ];
+  for (const value of bad) {
+    expect(() => loadConfig({ ...base, TRUST_PROXY: value }), value).toThrow(/TRUST_PROXY/);
   }
 });
