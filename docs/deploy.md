@@ -11,7 +11,7 @@ dt는 Docker 이미지 하나(화면 정적 파일 + API 서버)와 PostgreSQL�
 | `PORT` | `8080` | 서버 포트. compose에서는 호스트에 공개하는 포트이고, 컨테이너 안의 앱은 항상 `8080`을 쓴다 |
 | `HOST` | `0.0.0.0` | 바인드 주소 |
 | `LOG_LEVEL` | `info` | 로그 레벨 |
-| `TRUST_PROXY` | `false` | 앞단 리버스 프록시가 보낸 `X-Forwarded-*` 헤더를 믿을지 정한다. `true` 또는 프록시 주소·CIDR 목록(`127.0.0.1,172.16.0.0/12`). 아래 [앞단 프록시와 HTTPS](#앞단-프록시와-https) 참고 |
+| `TRUST_PROXY` | `false` | 앞단 리버스 프록시가 보낸 `X-Forwarded-*` 헤더를 믿을지 정한다. `true`, 또는 프록시 주소·CIDR 목록(예: `172.16.0.0/12`). `loopback`, `linklocal`, `uniquelocal` 같은 이름도 쓸 수 있다. 주소 목록을 권장한다. 아래 [앞단 프록시와 HTTPS](#앞단-프록시와-https) 참고 |
 | `DB_DRIVER` | `pg` | `pg`(PostgreSQL) 또는 `pglite`(내장 DB, 개발용). `.env.example`은 개발 편의로 `pglite`이고, compose가 `pg`로 덮어쓴다 |
 | `DATABASE_URL` | 없음 | `DB_DRIVER=pg`일 때 필수. 예: `postgres://dt:dt@db:5432/dt` |
 | `PGLITE_DIR` | 없음 | `pglite`의 데이터 디렉터리 |
@@ -161,9 +161,30 @@ docker compose up -d --no-build
 
 dt는 HTTP만 낸다. HTTPS가 필요하면 앞에 리버스 프록시(nginx, Caddy 등)를 둔다. 실시간 화면이 WebSocket(`/api/ws`)을 쓰므로 프록시가 `Upgrade` 헤더를 전달해야 한다. 서버가 25초마다 ping을 보내므로 프록시의 유휴 시간 제한(nginx `proxy_read_timeout` 기본 60초)은 그대로 둬도 된다. 화면은 60초 동안 아무 메시지도 받지 못하면 연결이 끊긴 것으로 보고 다시 연결한다. 모델 업로드가 크므로 프록시의 요청 본문 한도도 `MAX_MODEL_MB` 이상으로 올린다.
 
-프록시가 HTTPS를 처리하면 `TRUST_PROXY`를 설정하고, 프록시가 `X-Forwarded-Proto` 헤더를 넘기게 한다(nginx: `proxy_set_header X-Forwarded-Proto $scheme;`). 그러면 dt가 요청이 HTTPS로 들어왔음을 알고 로그인 쿠키에 `Secure` 속성을 붙인다. 로그에도 실제 접속자 IP가 남는다. 설정하지 않으면 쿠키는 HTTPS에서도 `Secure` 없이 나간다.
+프록시가 HTTPS를 처리하면 아래 세 가지를 한다. 하지 않으면 로그인 쿠키가 HTTPS에서도 `Secure` 없이 나간다.
 
-`TRUST_PROXY`는 프록시를 거쳐야만 앱에 닿을 수 있을 때만 켠다. 앱 포트가 외부에 열려 있으면 누구나 `X-Forwarded-*` 헤더를 꾸며 보낼 수 있다. compose에서는 `docker-compose.override.yml`로 앱 포트를 `127.0.0.1:8080:8080`에만 묶는다. 같은 서버의 nginx는 Docker 네트워크 게이트웨이 주소로 들어오므로 `TRUST_PROXY=true`로 두면 된다. 주소를 좁히고 싶다면 `172.16.0.0/12`처럼 Docker 대역을 적는다.
+1. **앱 포트를 프록시만 닿게 묶는다.** 앱 포트가 외부에 열려 있으면 누구나 `X-Forwarded-*` 헤더를 꾸며 보낼 수 있다. compose에서는 `docker-compose.override.yml`을 만든다. `!override`가 없으면 compose가 기본 파일의 `8080:8080`과 합쳐서 포트가 모든 주소에 그대로 열린다(Compose 2.24.4 이상).
+
+   ```yaml
+   services:
+     app:
+       ports: !override
+         - '127.0.0.1:8080:8080'
+   ```
+
+2. **`TRUST_PROXY`에 프록시가 앱에 접속하는 주소를 적는다.** 같은 서버의 nginx는 Docker 네트워크의 게이트웨이 주소로 들어온다. 그래서 Docker 기본 대역 `172.16.0.0/12`를 적으면 된다. 실제 대역은 `docker network inspect dt_default`로 확인한다(`dt`는 compose 프로젝트 이름). 그러면 앱이 프록시가 보낸 `X-Forwarded-Proto`로 HTTPS 요청임을 알고 쿠키에 `Secure`를 붙인다. 로그에도 실제 접속자 IP가 남는다.
+
+   `TRUST_PROXY=true`는 어느 주소에서 왔든 헤더를 믿는다. 이때 로그의 IP는 `X-Forwarded-For`의 맨 왼쪽 값이다. 프록시가 이 헤더를 덮어쓰지 않으면 접속자가 그 값을 마음대로 정할 수 있으므로, 주소 목록을 권장한다.
+
+3. **맨 앞 프록시가 `X-Forwarded-*` 헤더를 덮어쓰게 한다.** 접속자가 보낸 값을 그대로 넘기지 않는다. nginx 예:
+
+   ```nginx
+   proxy_set_header Host $host;
+   proxy_set_header X-Real-IP $remote_addr;
+   proxy_set_header X-Forwarded-For $remote_addr;
+   proxy_set_header X-Forwarded-Host $host;
+   proxy_set_header X-Forwarded-Proto $scheme;
+   ```
 
 ## 3. 클라우드
 

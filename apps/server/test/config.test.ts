@@ -71,3 +71,18 @@ test('TRUST_PROXY defaults to false and accepts a boolean or an address list', (
     '127.0.0.1,172.16.0.0/12',
   );
 });
+
+test('TRUST_PROXY accepts boolean words in any case and named ranges', () => {
+  expect(loadConfig({ ...base, TRUST_PROXY: 'TRUE' }).TRUST_PROXY).toBe(true);
+  expect(loadConfig({ ...base, TRUST_PROXY: 'False' }).TRUST_PROXY).toBe(false);
+  expect(loadConfig({ ...base, TRUST_PROXY: 'loopback, uniquelocal' }).TRUST_PROXY).toBe(
+    'loopback,uniquelocal',
+  );
+  expect(loadConfig({ ...base, TRUST_PROXY: '::1,fd00::/8' }).TRUST_PROXY).toBe('::1,fd00::/8');
+});
+
+test('TRUST_PROXY rejects values that are not addresses, CIDRs or named ranges', () => {
+  for (const bad of ['yes', '2', '10.0.0.1/33', '10.0.0/8', 'proxy.local', '127.0.0.1,']) {
+    expect(() => loadConfig({ ...base, TRUST_PROXY: bad }), bad).toThrow(/TRUST_PROXY/);
+  }
+});

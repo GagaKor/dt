@@ -1,3 +1,4 @@
+import { isIP } from 'node:net';
 import { z } from 'zod';
 
 const bool = z.enum(['true', 'false', '1', '0']).transform((v) => v === 'true' || v === '1');
@@ -17,19 +18,38 @@ const secret = (minLength: number, hint: string) =>
     .min(minLength)
     .refine((v) => !PLACEHOLDERS.has(v), `is a public placeholder from .env.example; ${hint}`);
 
-// Fastify `trustProxy`: true, false, or comma-separated proxy addresses/CIDRs.
+// Named ranges understood by Fastify's proxy-addr.
+const PROXY_RANGES = new Set(['loopback', 'linklocal', 'uniquelocal']);
+
+function isProxyAddress(entry: string): boolean {
+  if (PROXY_RANGES.has(entry)) return true;
+  const [ip = '', bits, ...rest] = entry.split('/');
+  const family = isIP(ip);
+  if (family === 0 || rest.length > 0) return false;
+  if (bits === undefined) return true;
+  return /^\d{1,3}$/.test(bits) && Number(bits) <= (family === 4 ? 32 : 128);
+}
+
+// Fastify `trustProxy`: true, false, or comma-separated proxy addresses/CIDRs/named ranges.
+// Checked here so a typo fails with the variable's name instead of deep inside Fastify.
 // Only set it when a reverse proxy is the sole way to reach the app, or X-Forwarded-* is spoofable.
 const trustProxy = z
   .string()
-  .transform((v): boolean | string => {
+  .transform((v, ctx): boolean | string => {
     const s = v.trim();
-    if (s === '' || s === 'false' || s === '0') return false;
-    if (s === 'true' || s === '1') return true;
-    return s
-      .split(',')
-      .map((p) => p.trim())
-      .filter(Boolean)
-      .join(',');
+    const word = s.toLowerCase();
+    if (s === '' || word === 'false' || s === '0') return false;
+    if (word === 'true' || s === '1') return true;
+    const entries = s.split(',').map((p) => p.trim());
+    const bad = entries.filter((e) => !isProxyAddress(e));
+    if (bad.length > 0) {
+      ctx.addIssue({
+        code: 'custom',
+        message: `must be true, false, or proxy IP addresses/CIDRs (invalid: ${bad.map((b) => JSON.stringify(b)).join(', ')})`,
+      });
+      return z.NEVER;
+    }
+    return entries.join(',');
   })
   .default(false);
 

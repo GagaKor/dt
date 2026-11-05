@@ -145,6 +145,17 @@ describe('admin auth', () => {
       }
     });
 
+    it('is set when TRUST_PROXY lists the connecting address', async () => {
+      // inject() connects from 127.0.0.1.
+      const listed = await createTestApp({ config: { TRUST_PROXY: '127.0.0.1' } });
+      try {
+        const res = await loginVia(listed, forwardedHttps);
+        expect(sessionCookie(res)?.secure).toBe(true);
+      } finally {
+        await listed.close();
+      }
+    });
+
     it('ignores X-Forwarded-Proto from an address outside TRUST_PROXY', async () => {
       // inject() connects from 127.0.0.1, which this list does not trust.
       const other = await createTestApp({ config: { TRUST_PROXY: '10.0.0.1' } });
