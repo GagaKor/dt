@@ -6,8 +6,9 @@ import { Link, useParams } from 'react-router';
 import { ApiError } from '../../api/client';
 import { useFloors, useSaveFloors, useSites } from '../../api/queries';
 import { uploadModel } from '../../api/uploadModel';
-import { FloorEditor, applySuggestion } from '../../components/FloorEditor';
+import { FloorEditor, applySuggestion, editedRange } from '../../components/FloorEditor';
 import { useViewStore } from '../../state/viewStore';
+import { FloorRangeBand } from '../../three/FloorRangeBand';
 import { FloorSelector } from '../../three/FloorSelector';
 import { ModelLayers } from '../../three/ModelLayers';
 import { SiteCanvas } from '../../three/SiteCanvas';
@@ -42,6 +43,7 @@ export function SiteDetailPage() {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [activeRow, setActiveRow] = useState<number | null>(null);
 
   useEffect(() => {
     if (draft === null && floors.data) setDraft(floors.data.map(toInput));
@@ -51,6 +53,8 @@ export function SiteDetailPage() {
   const value = draft ?? [];
   const issues = useMemo(() => validateFloorRanges(value), [value]);
   const model = useSiteModel(siteId, site?.modelVersion ?? null);
+  // The row being hovered or edited overrides the floor picked in the viewer.
+  const preview = editedRange(value, activeRow);
 
   const onFile = async (file: File | undefined) => {
     if (!file) return;
@@ -162,7 +166,14 @@ export function SiteDetailPage() {
           {draft === null && !floors.isError && (
             <p className="text-sm text-slate-500">{t('app.loading')}</p>
           )}
-          {draft !== null && <FloorEditor value={value} onChange={setDraft} issues={issues} />}
+          {draft !== null && (
+            <FloorEditor
+              value={value}
+              onChange={setDraft}
+              issues={issues}
+              onActiveChange={setActiveRow}
+            />
+          )}
           <div className="flex items-center gap-3">
             <button
               type="button"
@@ -197,9 +208,23 @@ export function SiteDetailPage() {
                 scene={model.scene}
                 floors={floors.data ?? []}
                 selectedFloorId={selectedFloorId}
+                range={preview}
               />
+              <FloorRangeBand bounds={model.bounds} range={preview} />
             </SiteCanvas>
             <FloorSelector floors={floors.data ?? []} className="absolute right-2 top-2" />
+            {preview && (
+              <p
+                data-testid="floor-range-preview"
+                className="absolute left-2 top-2 rounded bg-white/90 px-2 py-1 text-xs font-medium text-blue-700 shadow dark:bg-slate-800/90 dark:text-blue-300"
+              >
+                {t('floors.preview', {
+                  name: preview.name,
+                  min: preview.elevationMin,
+                  max: preview.elevationMax,
+                })}
+              </p>
+            )}
           </>
         )}
       </section>

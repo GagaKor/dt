@@ -48,6 +48,14 @@ test('success criteria: model to acknowledged alarm on the dashboard', async ({
     await expect(page.getByRole('status').filter({ hasText: /saved/i })).toBeVisible();
   });
 
+  await test.step('hovering a floor row previews its height range in 3D', async () => {
+    const preview = page.getByTestId('floor-range-preview');
+    await page.getByTestId('floor-row').nth(1).hover();
+    await expect(preview).toHaveText('2F · 4–8 m');
+    await page.getByTestId('floors-save').hover();
+    await expect(preview).toBeHidden();
+  });
+
   await test.step('place a camera', async () => {
     await page
       .getByRole('link', { name: /devices/i })
