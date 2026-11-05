@@ -22,6 +22,8 @@ const ROOF_MIN_HEIGHT_M = 0.1;
 /** Twice the XZ-projected area below which a triangle counts as vertical (a wall). */
 const VERTICAL_XZ_AREA2 = 1e-9;
 const EPS = 1e-6;
+// Float32 error of a height under 10 km, in centimetres.
+const FLOAT32_SLACK_CM = 1e-3;
 
 interface HeightGrid {
   minX: number;
@@ -187,6 +189,25 @@ function roofStart(grid: HeightGrid, base: number): number | null {
   return Math.floor(low * ROOF_STEPS_PER_M + 1e-3) / ROOF_STEPS_PER_M;
 }
 
+/**
+ * Heights in whole centimetres. Level heights are bin multiples (7 * 0.1 = 0.7000000000000001) and
+ * the model bounds are float32 (13.15 reads as 13.149999618..., 29.7 as 29.700000762...). The
+ * model's bottom and top round outwards, ignoring float32 error, so the ranges cover the model.
+ */
+function inCentimetres(floors: FloorSuggestion[], minY: number, maxY: number): FloorSuggestion[] {
+  const cm = (v: number) =>
+    v === maxY
+      ? Math.ceil(v * 100 - FLOAT32_SLACK_CM) / 100
+      : v === minY
+        ? Math.floor(v * 100 + FLOAT32_SLACK_CM) / 100
+        : Math.round(v * 100) / 100;
+  return floors.map((f) => ({
+    ...f,
+    elevationMin: cm(f.elevationMin),
+    elevationMax: cm(f.elevationMax),
+  }));
+}
+
 export function suggestFloors(doc: Document, known?: bbox): FloorSuggestion[] {
   const scene = doc.getRoot().getDefaultScene() ?? doc.getRoot().listScenes()[0];
   if (!known && !scene) return [];
@@ -226,13 +247,13 @@ export function suggestFloors(doc: Document, known?: bbox): FloorSuggestion[] {
       base = top;
     }
   }
-  if (base === null || !grid) return floors;
+  if (base === null || !grid) return inCentimetres(floors, minY, maxY);
 
   const roof = roofStart(grid, base);
   if (roof === null || roof - base < TOP_GAP_M - EPS || maxY - roof < ROOF_MIN_HEIGHT_M - EPS) {
-    return floors;
+    return inCentimetres(floors, minY, maxY);
   }
   floors[floors.length - 1]!.elevationMax = roof;
   floors.push({ elevationMin: roof, elevationMax: maxY, roof: true });
-  return floors;
+  return inCentimetres(floors, minY, maxY);
 }

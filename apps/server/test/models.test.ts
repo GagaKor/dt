@@ -302,3 +302,32 @@ test('splits a single-level hall at the eaves despite a low canopy and a lower y
   gableRoof(t, -30, 30, -20, 20, 10, 12);
   expect(suggestFloors(docOf(t))).toEqual([range(-1.4, 10), range(10, 12, true)]);
 });
+
+test('suggested heights come out in whole centimetres, the top range still reaching the model top', () => {
+  const t: number[] = [];
+  // A flat roof at 13.15 lands in bin 131, and 131 * 0.1 is 13.100000000000001. A mast takes the
+  // model top to 15.15, which float32 stores as 15.149999618...
+  box(t, [-15, -0.2, -10], [15, 0, 10]);
+  box(t, [-15, 6.8, -10], [15, 7, 10]);
+  walls(t, -15, 15, -10, 10, 7);
+  box(t, [-14, 7, -9], [14, 13.15, 9]);
+  box(t, [-0.5, 13.15, -0.5], [0.5, 15.15, 0.5]);
+  const floors = suggestFloors(docOf(t));
+  for (const f of floors) {
+    expect(f.elevationMin).toBe(Math.round(f.elevationMin * 100) / 100);
+    expect(f.elevationMax).toBe(Math.round(f.elevationMax * 100) / 100);
+  }
+  expect(floors.map((f) => [f.elevationMin, f.elevationMax])).toEqual([
+    [0, 7],
+    [7, 13.1],
+    [13.1, 15.15],
+  ]);
+});
+
+test('a model top a float32 step above a centimetre ends there, not a centimetre higher', () => {
+  const t: number[] = [];
+  box(t, [-15, -0.2, -10], [15, 0, 10]);
+  box(t, [-15, 3.8, -10], [15, 4, 10]);
+  box(t, [-0.5, 4, -0.5], [0.5, 29.7, 0.5]); // 29.7 is stored as 29.700000762...
+  expect(suggestFloors(docOf(t)).at(-1)?.elevationMax).toBe(29.7);
+});
