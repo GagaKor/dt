@@ -120,9 +120,10 @@ function pushBox(mesh: MeshData, { min, max, bottom }: Box): void {
 }
 
 function createMaterial(doc: Document, look: Look): Material {
-  // Colors are given in sRGB; glTF base colors are linear.
+  // Colors are given in sRGB; glTF base colors are linear. Rounded because `**` can differ in the
+  // last bit between Node versions, and the committed glb must not depend on the Node version.
   const c = [(look.hex >> 16) & 255, (look.hex >> 8) & 255, look.hex & 255].map(
-    (v) => (v / 255) ** 2.2,
+    (v) => Math.round((v / 255) ** 2.2 * 1e6) / 1e6,
   );
   const m = doc
     .createMaterial(look.name)
