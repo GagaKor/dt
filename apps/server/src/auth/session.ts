@@ -102,6 +102,8 @@ export async function registerAuth(app: FastifyInstance, deps: AppDeps): Promise
         sameSite: 'lax',
         path: '/',
         maxAge: SESSION_TTL_MS / 1000,
+        // Secure when the request arrived over HTTPS (behind a proxy, see TRUST_PROXY).
+        secure: 'auto',
       });
       return reply.status(204).send(null);
     },
@@ -111,7 +113,7 @@ export async function registerAuth(app: FastifyInstance, deps: AppDeps): Promise
     '/api/auth/logout',
     { schema: { response: { 204: z.null() } } },
     async (_req, reply) => {
-      reply.clearCookie(SESSION_COOKIE, { path: '/' });
+      reply.clearCookie(SESSION_COOKIE, { path: '/', secure: 'auto' });
       return reply.status(204).send(null);
     },
   );
