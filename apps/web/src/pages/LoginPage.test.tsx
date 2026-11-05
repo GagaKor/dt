@@ -54,3 +54,8 @@ test('shows login.invalid message on 401', async () => {
   await userEvent.click(screen.getByTestId('login-submit'));
   expect(await screen.findByRole('alert')).toHaveTextContent('Invalid username or password');
 });
+
+test('shows the product name as the heading', () => {
+  setup();
+  expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Cutaway');
+});

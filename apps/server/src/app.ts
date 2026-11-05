@@ -97,7 +97,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   if (webDist) await app.register(fastifyStatic, { root: resolve(webDist) });
 
   await app.register(swagger, {
-    openapi: { info: { title: 'dt API', version: '0.1.0' } },
+    openapi: { info: { title: 'Cutaway API', version: '0.1.0' } },
     transform: jsonSchemaTransform,
   });
   await app.register(swaggerUi, { routePrefix: '/api/docs' });

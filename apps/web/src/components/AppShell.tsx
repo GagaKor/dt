@@ -42,7 +42,7 @@ export function AppShell({ siteId, children }: AppShellProps) {
   return (
     <div className="flex h-screen flex-col">
       <header className="flex items-center gap-4 border-b border-slate-200 bg-white px-4 py-2 dark:border-slate-700 dark:bg-slate-800">
-        <span className="text-lg font-bold tracking-tight">dt</span>
+        <span className="text-lg font-bold tracking-tight">{t('app.name')}</span>
         <select
           aria-label={t('nav.site')}
           className="rounded border border-slate-300 bg-transparent px-2 py-1 text-sm dark:border-slate-600"
