@@ -71,7 +71,12 @@ export function MonitorPage() {
                   selectedFloorId={selectedFloorId}
                   showOtherFloors={showOtherFloors}
                 />
-                <DeviceMarkers devices={deviceList} selectedId={null} floors={floorList} />
+                <DeviceMarkers
+                  devices={deviceList}
+                  selectedId={null}
+                  floors={floorList}
+                  model={model.scene}
+                />
                 <AlarmRings alarms={alarms} devices={deviceList} resolveFloorY={resolveFloorY} />
                 <ObjectMarkers siteId={siteId} resolveFloorY={resolveFloorY} />
                 <CoordinateReadout model={model.scene} floors={floorList} />

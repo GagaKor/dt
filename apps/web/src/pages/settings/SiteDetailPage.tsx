@@ -221,7 +221,8 @@ export function SiteDetailPage() {
                 scene={model.scene}
                 floors={floors.data ?? []}
                 selectedFloorId={selectedFloorId}
-                showOtherFloors={showOtherFloors}
+                // The rest of the building shows where the edited range sits.
+                showOtherFloors={cutRange ? true : showOtherFloors}
                 range={cutRange}
               />
               <FloorRangeBand bounds={model.bounds} range={preview} />

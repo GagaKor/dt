@@ -1,10 +1,11 @@
 import type { Device, Floor, FloorRange } from '@dt/shared';
 import type { ThreeEvent } from '@react-three/fiber';
 import { useEffect, useMemo, type Ref } from 'react';
-import { DoubleSide, EdgesGeometry, type Group } from 'three';
+import { DoubleSide, type Group, type Object3D } from 'three';
 import { useViewStore } from '../state/viewStore';
-import { cameraFrustumGeometry, frustumClipPlanes } from './cameraFrustum';
+import { frustumClipPlanes } from './cameraFrustum';
 import { deviceQuaternion } from './devicePose';
+import { createOccluder, viewshedGeometry, type Occluder } from './viewshed';
 
 /** Pointer travel (px) between down and up beyond which a click counts as a drag. */
 export const CLICK_SLOP_PX = 4;
@@ -18,6 +19,10 @@ export interface DeviceMarkersProps {
   selectedRef?: Ref<Group>;
   /** Keeps each camera's viewing pyramid inside its floor's height range when given. */
   floors?: Floor[];
+  /** Model whose opaque surfaces stop the cameras' views (walls, ceilings, floors). */
+  model?: Object3D | null;
+  /** Camera whose viewing range is hidden, e.g. while it is dragged and the range is stale. */
+  hideRangeOf?: string | null;
 }
 
 const FRUSTUM_COLOR = '#ffd666';
@@ -31,16 +36,29 @@ const FALLBACK_HFOV_DEG = 90;
 const FALLBACK_RANGE_M = 10;
 const noRaycast = () => {};
 
-function Frustum({
-  hfovDeg,
-  rangeM,
-  floor,
-}: {
+interface FrustumProps {
+  device: Device;
   hfovDeg: number;
   rangeM: number;
   floor?: FloorRange;
-}) {
-  const geometry = useMemo(() => cameraFrustumGeometry(hfovDeg, rangeM), [hfovDeg, rangeM]);
+  occluder: Occluder | null;
+}
+
+/** What a camera sees: its viewing pyramid cut where walls block it and kept within its floor. */
+function Frustum({ device, hfovDeg, rangeM, floor, occluder }: FrustumProps) {
+  const [x, y, z] = device.position;
+  const { yawDeg, pitchDeg } = device;
+  const { surface: geometry, outline: edges } = useMemo(
+    () =>
+      viewshedGeometry({
+        hfovDeg,
+        rangeM,
+        position: [x, y, z],
+        quaternion: deviceQuaternion(yawDeg, pitchDeg),
+        occluder,
+      }),
+    [hfovDeg, rangeM, x, y, z, yawDeg, pitchDeg, occluder],
+  );
   const min = floor?.elevationMin;
   const max = floor?.elevationMax;
   const clippingPlanes = useMemo(
@@ -52,7 +70,6 @@ function Frustum({
       ),
     [min, max],
   );
-  const edges = useMemo(() => new EdgesGeometry(geometry), [geometry]);
   // Passed by reference, so R3F does not own (or dispose) these geometries.
   useEffect(
     () => () => {
@@ -84,12 +101,22 @@ function Frustum({
 interface MarkerProps {
   device: Device;
   floor?: FloorRange;
+  occluder: Occluder | null;
+  showRange: boolean;
   selected: boolean;
   onSelect?: (id: string) => void;
   objectRef?: Ref<Group>;
 }
 
-function Marker({ device, floor, selected, onSelect, objectRef }: MarkerProps) {
+function Marker({
+  device,
+  floor,
+  occluder,
+  showRange,
+  selected,
+  onSelect,
+  objectRef,
+}: MarkerProps) {
   const { id, type, yawDeg, pitchDeg } = device;
   const quaternion = useMemo(() => deviceQuaternion(yawDeg, pitchDeg), [yawDeg, pitchDeg]);
   const onClick = onSelect
@@ -109,11 +136,15 @@ function Marker({ device, floor, selected, onSelect, objectRef }: MarkerProps) {
             <boxGeometry args={[CAMERA_BOX_M, CAMERA_BOX_M, CAMERA_BOX_M]} />
             <meshStandardMaterial color={color} />
           </mesh>
-          <Frustum
-            hfovDeg={device.hfovDeg ?? FALLBACK_HFOV_DEG}
-            rangeM={device.rangeM ?? FALLBACK_RANGE_M}
-            floor={floor}
-          />
+          {showRange && (
+            <Frustum
+              device={device}
+              hfovDeg={device.hfovDeg ?? FALLBACK_HFOV_DEG}
+              rangeM={device.rangeM ?? FALLBACK_RANGE_M}
+              floor={floor}
+              occluder={occluder}
+            />
+          )}
         </>
       ) : (
         <mesh onClick={onClick}>
@@ -132,10 +163,14 @@ export function DeviceMarkers({
   onSelect,
   selectedRef,
   floors,
+  model,
+  hideRangeOf = null,
 }: DeviceMarkersProps) {
   const floorId = useViewStore((s) => s.selectedFloorId);
   const shown = floorId ? devices.filter((d) => d.floorId === floorId) : devices;
   const floorById = useMemo(() => new Map((floors ?? []).map((f) => [f.id, f])), [floors]);
+  const occluder = useMemo(() => (model ? createOccluder(model) : null), [model]);
+  useEffect(() => () => occluder?.dispose?.(), [occluder]);
   return (
     <>
       {shown.map((d) => (
@@ -143,6 +178,8 @@ export function DeviceMarkers({
           key={d.id}
           device={d}
           floor={floorById.get(d.floorId)}
+          occluder={occluder}
+          showRange={d.id !== hideRangeOf}
           selected={d.id === selectedId}
           onSelect={onSelect}
           objectRef={d.id === selectedId ? selectedRef : undefined}
