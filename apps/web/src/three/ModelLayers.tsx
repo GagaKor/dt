@@ -10,6 +10,8 @@ export interface ModelLayersProps {
   selectedFloorId: string | null;
   /** Cut the model to this height range instead of the selected floor (e.g. a range being edited). */
   range?: FloorRange | null;
+  /** With a floor or range shown, also draw the rest of the model faintly. Defaults to true. */
+  showOtherFloors?: boolean;
 }
 
 interface Layers {
@@ -52,7 +54,7 @@ function buildLayers(scene: Object3D, elevationMin: number, elevationMax: number
   const ghostMaterial = new MeshStandardMaterial({
     color: '#9aa4b8',
     transparent: true,
-    opacity: 0.12,
+    opacity: 0.07,
     depthWrite: false,
     clippingPlanes: outside,
     clipIntersection: true,
@@ -89,7 +91,13 @@ export function layerRange(
   return floor ? { elevationMin: floor.elevationMin, elevationMax: floor.elevationMax } : null;
 }
 
-export function ModelLayers({ scene: source, floors, selectedFloorId, range }: ModelLayersProps) {
+export function ModelLayers({
+  scene: source,
+  floors,
+  selectedFloorId,
+  range,
+  showOtherFloors = true,
+}: ModelLayersProps) {
   // A released scene may already be disposed; drawing it would re-upload its buffers.
   const scene = source && !isModelReleased(source) ? source : null;
   const floor = layerRange(floors, selectedFloorId, range);
@@ -110,7 +118,7 @@ export function ModelLayers({ scene: source, floors, selectedFloorId, range }: M
   return (
     <>
       <primitive object={layers.opaque} />
-      <primitive object={layers.ghost} />
+      {showOtherFloors && <primitive object={layers.ghost} />}
     </>
   );
 }

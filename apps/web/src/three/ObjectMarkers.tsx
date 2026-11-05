@@ -13,8 +13,10 @@ import {
   type Group,
 } from 'three';
 import { realtimeNow, useRealtimeStore, type ClientObject } from '../realtime/store';
+import { useViewStore } from '../state/viewStore';
 import type { FloorYResolver } from './floorSurface';
 import { objectOpacity } from './fade';
+import { isOnSelectedFloor } from './floorFilter';
 import { getLabelTexture } from './labelTexture';
 import { objectColor } from './objectColor';
 
@@ -139,6 +141,7 @@ export function ObjectMarkers({ siteId, resolveFloorY }: ObjectMarkersProps) {
     }
     const state = useRealtimeStore.getState();
     const objects = state.siteId === siteId ? state.objects : null;
+    const selectedFloorId = useViewStore.getState().selectedFloorId;
     const replace = placedWith.current !== resolveFloorY;
     placedWith.current = resolveFloorY;
 
@@ -162,7 +165,7 @@ export function ObjectMarkers({ siteId, resolveFloorY }: ObjectMarkersProps) {
       const opacity = objectOpacity(now - o.lastSeenMs);
       m.mesh.material.opacity = opacity;
       if (m.label) m.label.material.opacity = opacity;
-      m.mesh.visible = m.placed && opacity > 0;
+      m.mesh.visible = m.placed && opacity > 0 && isOnSelectedFloor(o.floorId, selectedFloorId);
     }
   });
 

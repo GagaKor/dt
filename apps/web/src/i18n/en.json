@@ -32,6 +32,7 @@
   "viewer": {
     "floors": "Floors",
     "allFloors": "All",
+    "showOtherFloors": "Show other floors",
     "coordinates": "{{x}}, {{y}} (m) · {{floor}}",
     "coordinatesNoFloor": "{{x}}, {{y}} (m)"
   },

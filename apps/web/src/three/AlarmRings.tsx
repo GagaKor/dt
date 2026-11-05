@@ -2,7 +2,9 @@ import type { Alarm, Device } from '@dt/shared';
 import { useFrame } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import { DoubleSide, MeshBasicMaterial, RingGeometry, type Group } from 'three';
-import { alarmPoint } from './alarmPoint';
+import { useViewStore } from '../state/viewStore';
+import { alarmFloorId, alarmPoint } from './alarmPoint';
+import { isOnSelectedFloor } from './floorFilter';
 import type { FloorYResolver } from './floorSurface';
 import { MARKER_RENDER_ORDER } from './ObjectMarkers';
 
@@ -25,7 +27,10 @@ function sharedRingGeometry(): RingGeometry {
 
 const noRaycast = () => {};
 
-/** Pulsing red rings at unacknowledged alarms; acknowledged ones leave the list and vanish. */
+/**
+ * Pulsing red rings at unacknowledged alarms; acknowledged ones leave the list and vanish.
+ * With a floor selected, only that floor's alarms get a ring.
+ */
 export function AlarmRings({ alarms, devices, resolveFloorY }: AlarmRingsProps) {
   const group = useRef<Group>(null);
   const material = useMemo(
@@ -41,13 +46,16 @@ export function AlarmRings({ alarms, devices, resolveFloorY }: AlarmRingsProps) 
   );
   useEffect(() => () => material.dispose(), [material]);
 
+  const selectedFloorId = useViewStore((s) => s.selectedFloorId);
   const rings = useMemo(() => {
     const byId = new Map(devices.map((d) => [d.id, d]));
     return alarms.flatMap((a) => {
-      const p = alarmPoint(a, byId.get(a.deviceId), resolveFloorY);
+      const device = byId.get(a.deviceId);
+      if (!isOnSelectedFloor(alarmFloorId(a, device), selectedFloorId)) return [];
+      const p = alarmPoint(a, device, resolveFloorY);
       return p ? [{ id: a.id, position: p }] : [];
     });
-  }, [alarms, devices, resolveFloorY]);
+  }, [alarms, devices, resolveFloorY, selectedFloorId]);
 
   useFrame(({ clock }) => {
     const k = 0.5 + 0.5 * Math.sin((clock.elapsedTime * 2 * Math.PI) / PULSE_PERIOD_S);

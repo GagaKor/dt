@@ -32,6 +32,7 @@
   "viewer": {
     "floors": "층",
     "allFloors": "전체",
+    "showOtherFloors": "다른 층 보기",
     "coordinates": "{{x}}, {{y}} (m) · {{floor}}",
     "coordinatesNoFloor": "{{x}}, {{y}} (m)"
   },
