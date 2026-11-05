@@ -38,16 +38,17 @@ const inputClass =
 
 export function FloorEditor({ value, onChange, issues, onActiveChange }: FloorEditorProps) {
   const { t } = useTranslation();
-  const [focused, setFocused] = useState<number | null>(null);
-  const [hovered, setHovered] = useState<number | null>(null);
-  const active = hovered ?? focused;
-  // Adding or removing rows shifts indexes; start over rather than preview the wrong row.
   const count = value.length;
-  useEffect(() => {
-    setFocused(null);
-    setHovered(null);
-  }, [count]);
+  // Focus is remembered with the row count: a removed row takes its focus with it (React fires no
+  // blur for it), and the rows below shift up. Hover stays positional: after a removal the pointer
+  // is over whichever row moved under it.
+  const [focused, setFocused] = useState<{ index: number; count: number } | null>(null);
+  const [hovered, setHovered] = useState<number | null>(null);
+  const focusedIndex = focused?.count === count ? focused.index : null;
+  const hoveredIndex = hovered !== null && hovered < count ? hovered : null;
+  const active = hoveredIndex ?? focusedIndex;
   useEffect(() => onActiveChange?.(active), [active, onActiveChange]);
+  useEffect(() => () => onActiveChange?.(null), [onActiveChange]);
 
   const patch = (i: number, p: Partial<FloorInput>) =>
     onChange(value.map((f, j) => (j === i ? { ...f, ...p } : f)));
@@ -66,7 +67,7 @@ export function FloorEditor({ value, onChange, issues, onActiveChange }: FloorEd
             className={`flex flex-col gap-1 rounded px-1 py-0.5 ${
               active === i ? 'bg-blue-50 dark:bg-slate-700/60' : ''
             }`}
-            onFocus={() => setFocused(i)}
+            onFocus={() => setFocused({ index: i, count })}
             onBlur={(e) => {
               if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFocused(null);
             }}

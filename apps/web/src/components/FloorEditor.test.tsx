@@ -1,5 +1,6 @@
-import { render, screen, within } from '@testing-library/react';
+import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { useState } from 'react';
 import { expect, test, vi } from 'vitest';
 import { validateFloorRanges, type FloorInput } from '@dt/shared';
 import '../i18n';
@@ -60,4 +61,38 @@ test('editedRange returns the row range only when it is complete and ordered', (
   expect(editedRange(twoFloors, 2)).toBeNull();
   expect(editedRange([{ name: 'x', elevationMin: Number.NaN, elevationMax: 4 }], 0)).toBeNull();
   expect(editedRange([{ name: 'x', elevationMin: 4, elevationMax: 4 }], 0)).toBeNull();
+});
+
+test('moving focus within a row keeps that row active', async () => {
+  const onActive = vi.fn();
+  render(
+    <FloorEditor value={twoFloors} onChange={() => {}} issues={[]} onActiveChange={onActive} />,
+  );
+  const row = screen.getAllByTestId('floor-row')[1]!;
+  await userEvent.click(within(row).getByRole('spinbutton', { name: /min/i }));
+  onActive.mockClear();
+  await userEvent.tab();
+  expect(within(row).getByRole('spinbutton', { name: /max/i })).toHaveFocus();
+  expect(onActive).not.toHaveBeenCalledWith(null);
+});
+
+test('removing the focused row stops previewing it', async () => {
+  const onActive = vi.fn();
+  function Harness() {
+    const [rows, setRows] = useState(twoFloors);
+    return <FloorEditor value={rows} onChange={setRows} issues={[]} onActiveChange={onActive} />;
+  }
+  render(<Harness />);
+  const first = screen.getAllByTestId('floor-row')[0]!;
+  // Keyboard only: a pointer left over the row would keep the row that moves up active.
+  act(() => within(first).getByRole('spinbutton', { name: /min/i }).focus());
+  expect(onActive).toHaveBeenLastCalledWith(0);
+  act(() =>
+    within(first)
+      .getByRole('button', { name: /remove/i })
+      .focus(),
+  );
+  await userEvent.keyboard('{Enter}');
+  expect(screen.getAllByTestId('floor-row')).toHaveLength(1);
+  expect(onActive).toHaveBeenLastCalledWith(null);
 });

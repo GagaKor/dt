@@ -7,6 +7,7 @@ import { ApiError } from '../../api/client';
 import { useFloors, useSaveFloors, useSites } from '../../api/queries';
 import { uploadModel } from '../../api/uploadModel';
 import { FloorEditor, applySuggestion, editedRange } from '../../components/FloorEditor';
+import { useSettledValue } from '../../hooks/useSettledValue';
 import { useViewStore } from '../../state/viewStore';
 import { FloorRangeBand } from '../../three/FloorRangeBand';
 import { FloorSelector } from '../../three/FloorSelector';
@@ -53,8 +54,19 @@ export function SiteDetailPage() {
   const value = draft ?? [];
   const issues = useMemo(() => validateFloorRanges(value), [value]);
   const model = useSiteModel(siteId, site?.modelVersion ?? null);
-  // The row being hovered or edited overrides the floor picked in the viewer.
+  // The row being hovered or edited overrides the floor picked in the viewer. The band and label
+  // follow it at once; re-cutting the model clones the scene, so that waits until the range settles
+  // (typing "12" passes through "1"; sweeping the pointer crosses every row).
   const preview = editedRange(value, activeRow);
+  const settledKey = useSettledValue(
+    preview ? `${preview.elevationMin}:${preview.elevationMax}` : '',
+    150,
+  );
+  const cutRange = useMemo(() => {
+    if (!settledKey) return null;
+    const [elevationMin, elevationMax] = settledKey.split(':').map(Number) as [number, number];
+    return { elevationMin, elevationMax };
+  }, [settledKey]);
 
   const onFile = async (file: File | undefined) => {
     if (!file) return;
@@ -208,7 +220,7 @@ export function SiteDetailPage() {
                 scene={model.scene}
                 floors={floors.data ?? []}
                 selectedFloorId={selectedFloorId}
-                range={preview}
+                range={cutRange}
               />
               <FloorRangeBand bounds={model.bounds} range={preview} />
             </SiteCanvas>
@@ -216,6 +228,7 @@ export function SiteDetailPage() {
             {preview && (
               <p
                 data-testid="floor-range-preview"
+                role="status"
                 className="absolute left-2 top-2 rounded bg-white/90 px-2 py-1 text-xs font-medium text-blue-700 shadow dark:bg-slate-800/90 dark:text-blue-300"
               >
                 {t('floors.preview', {
