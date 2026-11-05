@@ -2,6 +2,8 @@ import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { useCreateSite, useDeleteSite, useRenameSite, useSites } from '../../api/queries';
+import { ChevronRightIcon, PencilIcon, PlusIcon, TrashIcon } from '../../components/icons';
+import { buttonClass, inputClass } from '../../components/ui';
 
 export function SitesPage() {
   const { t } = useTranslation();
@@ -30,13 +32,14 @@ export function SitesPage() {
           placeholder={t('sites.name')}
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="rounded border border-slate-300 bg-white px-2 py-1 dark:border-slate-600 dark:bg-slate-800"
+          className={`${inputClass()} w-64`}
         />
         <button
           type="submit"
           data-testid="site-create-submit"
-          className="rounded bg-slate-800 px-3 py-1 text-white dark:bg-slate-200 dark:text-slate-900"
+          className={buttonClass('primary', 'md')}
         >
+          <PlusIcon />
           {t('sites.create')}
         </button>
       </form>
@@ -50,7 +53,7 @@ export function SitesPage() {
           <li
             key={s.id}
             data-testid="site-row"
-            className="flex items-center gap-3 rounded border border-slate-200 p-2 dark:border-slate-700"
+            className="flex min-h-14 items-center gap-3 rounded-lg border border-slate-200 bg-white p-2 shadow-xs dark:border-slate-700 dark:bg-slate-800"
           >
             {editing?.id === s.id ? (
               <form
@@ -66,14 +69,14 @@ export function SitesPage() {
                   aria-label={t('sites.name')}
                   value={editing.name}
                   onChange={(e) => setEditing({ id: s.id, name: e.target.value })}
-                  className="rounded border border-slate-300 bg-white px-2 py-1 dark:border-slate-600 dark:bg-slate-800"
+                  className={inputClass('sm')}
                 />
-                <button type="submit" className="rounded border px-2 py-1 text-sm">
+                <button type="submit" className={buttonClass('primary')}>
                   {t('common.save')}
                 </button>
                 <button
                   type="button"
-                  className="rounded border px-2 py-1 text-sm"
+                  className={buttonClass('secondary')}
                   onClick={() => setEditing(null)}
                 >
                   {t('common.cancel')}
@@ -82,14 +85,20 @@ export function SitesPage() {
             ) : (
               <Link
                 to={`/settings/sites/${s.id}`}
-                className="font-medium underline-offset-2 hover:underline"
+                className="group flex min-w-0 flex-1 items-center gap-1.5 self-stretch rounded-md px-2 font-medium transition-colors hover:bg-slate-50 hover:text-blue-700 focus-visible:outline-2 focus-visible:outline-blue-600 dark:hover:bg-slate-700/60 dark:hover:text-blue-300"
               >
-                {s.name}
+                <span className="truncate">{s.name}</span>
+                <ChevronRightIcon className="size-4 shrink-0 text-slate-400 transition-transform group-hover:translate-x-0.5 group-hover:text-current" />
               </Link>
             )}
-            <span className="ml-auto flex items-center gap-2 text-sm">
+            <span className="ml-auto flex shrink-0 items-center gap-2 text-sm">
               {editing?.id !== s.id && (
-                <button type="button" onClick={() => setEditing({ id: s.id, name: s.name })}>
+                <button
+                  type="button"
+                  className={buttonClass('secondary')}
+                  onClick={() => setEditing({ id: s.id, name: s.name })}
+                >
+                  <PencilIcon />
                   {t('sites.rename')}
                 </button>
               )}
@@ -98,7 +107,7 @@ export function SitesPage() {
                   <span>{t('sites.deleteConfirm', { name: s.name })}</span>
                   <button
                     type="button"
-                    className="rounded bg-red-600 px-2 py-1 text-white"
+                    className={buttonClass('dangerSolid')}
                     onClick={() => {
                       del.mutate(s.id);
                       setConfirmId(null);
@@ -108,14 +117,19 @@ export function SitesPage() {
                   </button>
                   <button
                     type="button"
-                    className="rounded border px-2 py-1"
+                    className={buttonClass('secondary')}
                     onClick={() => setConfirmId(null)}
                   >
                     {t('common.cancel')}
                   </button>
                 </>
               ) : (
-                <button type="button" className="text-red-600" onClick={() => setConfirmId(s.id)}>
+                <button
+                  type="button"
+                  className={buttonClass('danger')}
+                  onClick={() => setConfirmId(s.id)}
+                >
+                  <TrashIcon />
                   {t('sites.delete')}
                 </button>
               )}

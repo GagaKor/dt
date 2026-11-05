@@ -4,6 +4,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '../../api/client';
 import { useTranslation } from 'react-i18next';
 import { useIntegrationKeys, usePatchKey, useRevokeKey } from '../../api/queries';
+import { CheckIcon, CopyIcon, PlusIcon, TrashIcon } from '../../components/icons';
+import { buttonClass, inputClass } from '../../components/ui';
 
 export function KeysPage() {
   const { t } = useTranslation();
@@ -89,13 +91,14 @@ export function KeysPage() {
           placeholder={t('keys.name')}
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="rounded border border-slate-300 bg-white px-2 py-1 dark:border-slate-600 dark:bg-slate-800"
+          className={`${inputClass()} w-64`}
         />
         <button
           type="submit"
           data-testid="key-create-submit"
-          className="rounded bg-slate-800 px-3 py-1 text-white dark:bg-slate-200 dark:text-slate-900"
+          className={buttonClass('primary', 'md')}
         >
+          <PlusIcon />
           {t('keys.create')}
         </button>
       </form>
@@ -133,18 +136,11 @@ export function KeysPage() {
             </p>
           )}
           <div className="mt-3 flex gap-2">
-            <button
-              type="button"
-              onClick={() => void copy()}
-              className="rounded border px-3 py-1 text-sm"
-            >
+            <button type="button" onClick={() => void copy()} className={buttonClass('primary')}>
+              {copied ? <CheckIcon /> : <CopyIcon />}
               {copied ? t('keys.copied') : t('keys.copy')}
             </button>
-            <button
-              type="button"
-              onClick={closePlaintext}
-              className="rounded border px-3 py-1 text-sm"
-            >
+            <button type="button" onClick={closePlaintext} className={buttonClass('secondary')}>
               {t('common.close')}
             </button>
           </div>
@@ -158,7 +154,7 @@ export function KeysPage() {
             <li
               key={k.id}
               data-testid="key-row"
-              className={`flex items-center gap-3 rounded border border-slate-200 p-2 dark:border-slate-700 ${
+              className={`flex min-h-14 items-center gap-3 rounded-lg border border-slate-200 bg-white p-2 pl-3 shadow-xs dark:border-slate-700 dark:bg-slate-800 ${
                 revoked ? 'opacity-50' : ''
               }`}
             >
@@ -171,7 +167,7 @@ export function KeysPage() {
                 onChange={(e) =>
                   patch.mutate({ id: k.id, defaultSeverity: e.target.value as Severity })
                 }
-                className="ml-auto rounded border border-slate-300 bg-white px-1 py-1 text-sm dark:border-slate-600 dark:bg-slate-800"
+                className={`${inputClass('sm')} ml-auto`}
               >
                 {SEVERITIES.map((s) => (
                   <option key={s} value={s}>
@@ -182,11 +178,11 @@ export function KeysPage() {
               {revoked ? (
                 <span className="text-xs uppercase">{t('keys.revoked')}</span>
               ) : confirmId === k.id ? (
-                <span className="flex items-center gap-1 text-sm">
+                <span className="flex items-center gap-2 text-sm">
                   {t('keys.revokeConfirm')}
                   <button
                     type="button"
-                    className="rounded bg-red-600 px-2 py-1 text-white"
+                    className={buttonClass('dangerSolid')}
                     onClick={() => {
                       revoke.mutate(k.id);
                       setConfirmId(null);
@@ -196,7 +192,7 @@ export function KeysPage() {
                   </button>
                   <button
                     type="button"
-                    className="rounded border px-2 py-1"
+                    className={buttonClass('secondary')}
                     onClick={() => setConfirmId(null)}
                   >
                     {t('common.cancel')}
@@ -205,9 +201,10 @@ export function KeysPage() {
               ) : (
                 <button
                   type="button"
-                  className="rounded px-2 py-1 text-sm text-red-600"
+                  className={buttonClass('danger')}
                   onClick={() => setConfirmId(k.id)}
                 >
+                  <TrashIcon />
                   {t('keys.revoke')}
                 </button>
               )}

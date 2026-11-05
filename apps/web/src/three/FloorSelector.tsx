@@ -1,5 +1,6 @@
 import type { Floor } from '@dt/shared';
 import { useTranslation } from 'react-i18next';
+import { toggleClass } from '../components/ui';
 import { useViewStore } from '../state/viewStore';
 
 export interface FloorSelectorProps {
@@ -7,12 +8,7 @@ export interface FloorSelectorProps {
   className?: string;
 }
 
-const optionClass = (active: boolean) =>
-  `w-full rounded px-3 py-1 text-left text-sm font-medium ${
-    active
-      ? 'bg-slate-800 text-white dark:bg-slate-200 dark:text-slate-900'
-      : 'hover:bg-slate-200 dark:hover:bg-slate-700'
-  }`;
+const optionClass = (active: boolean) => `${toggleClass(active)} w-full`;
 
 export function FloorSelector({ floors, className = '' }: FloorSelectorProps) {
   const { t } = useTranslation();
@@ -31,8 +27,11 @@ export function FloorSelector({ floors, className = '' }: FloorSelectorProps) {
     <div
       role="group"
       aria-label={t('viewer.floors')}
-      className={`flex flex-col gap-0.5 rounded border border-slate-300 bg-white/90 p-1 shadow-sm dark:border-slate-600 dark:bg-slate-800/90 ${className}`}
+      className={`flex min-w-24 flex-col gap-1 rounded-lg border border-slate-200 bg-white/95 p-1.5 shadow-md dark:border-slate-600 dark:bg-slate-800/95 ${className}`}
     >
+      <span aria-hidden className="px-1 text-xs font-semibold text-slate-500 dark:text-slate-400">
+        {t('viewer.floors')}
+      </span>
       {options.map((o) => (
         <button
           key={o.id ?? ''}
@@ -46,7 +45,7 @@ export function FloorSelector({ floors, className = '' }: FloorSelectorProps) {
         </button>
       ))}
       {current !== null && (
-        <label className="mt-1 flex items-center gap-1.5 border-t border-slate-200 px-2 pt-1.5 text-xs dark:border-slate-600">
+        <label className="mt-0.5 flex items-center gap-1.5 rounded-md border-t border-slate-200 px-1 pt-1.5 text-xs dark:border-slate-600">
           <input
             type="checkbox"
             data-testid="floor-show-others"

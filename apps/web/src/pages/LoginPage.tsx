@@ -4,9 +4,9 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { ApiError, apiFetch } from '../api/client';
 import { meKey } from '../api/queries';
+import { buttonClass, inputClass as fieldClass } from '../components/ui';
 
-const inputClass =
-  'w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800';
+const inputClass = `${fieldClass('lg')} w-full`;
 
 export function LoginPage() {
   const { t } = useTranslation();
@@ -74,7 +74,7 @@ export function LoginPage() {
           data-testid="login-submit"
           type="submit"
           disabled={busy}
-          className="w-full rounded bg-slate-900 px-3 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-slate-100 dark:text-slate-900"
+          className={`${buttonClass('primary', 'lg')} w-full`}
         >
           {t('login.submit')}
         </button>
