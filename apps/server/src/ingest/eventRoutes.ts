@@ -15,7 +15,11 @@ export async function registerEventRoutes(app: FastifyInstance, service: EventSe
     '/api/ingest/events',
     {
       onRequest: app.requireIntegrationKey,
-      schema: { body: EventMessageSchema, response: { 200: ResultSchema, 201: ResultSchema } },
+      schema: {
+        security: [{ integrationKey: [] }],
+        body: EventMessageSchema,
+        response: { 200: ResultSchema, 201: ResultSchema },
+      },
     },
     async (req, reply) => {
       if (!req.integrationKey) throw new HttpError(401, 'missing_key', 'Integration key required');

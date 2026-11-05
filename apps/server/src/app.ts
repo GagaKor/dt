@@ -97,7 +97,19 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   if (webDist) await app.register(fastifyStatic, { root: resolve(webDist) });
 
   await app.register(swagger, {
-    openapi: { info: { title: 'Cutaway API', version: '0.1.0' } },
+    openapi: {
+      info: { title: 'Cutaway API', version: '0.1.0' },
+      components: {
+        securitySchemes: {
+          // Lets Swagger's "Authorize" send the key to the ingest endpoints.
+          integrationKey: {
+            type: 'http',
+            scheme: 'bearer',
+            description: 'Integration key (dtk_...), created under Settings > Integration keys',
+          },
+        },
+      },
+    },
     transform: jsonSchemaTransform,
   });
   await app.register(swaggerUi, { routePrefix: '/api/docs' });

@@ -15,6 +15,7 @@
     "monitor": "모니터",
     "dashboard": "대시보드",
     "settings": "설정",
+    "settingsSections": "설정 메뉴",
     "site": "현장",
     "selectSite": "현장 선택",
     "alarms": "미확인 알람",
@@ -27,7 +28,8 @@
     "sites": "현장",
     "siteDetail": "현장 설정",
     "devices": "장치",
-    "keys": "연동 키"
+    "keys": "연동 키",
+    "docs": "연동 문서"
   },
   "viewer": {
     "floors": "층",
@@ -109,6 +111,25 @@
     "revoke": "폐기",
     "revoked": "폐기됨",
     "revokeConfirm": "이 키를 폐기할까요?"
+  },
+  "docs": {
+    "intro": "외부 시스템은 HTTP로 이벤트와 위치를 이 서버에 보냅니다. 시스템마다 연동 키가 하나씩 필요합니다.",
+    "keysLink": "연동 키 관리",
+    "endpoints": "보낼 주소",
+    "header": "모든 요청은 이 헤더에 연동 키를 담습니다.",
+    "keyPlaceholder": "<연동 키>",
+    "swaggerTitle": "API 문서 (Swagger)",
+    "swaggerDesc": "모든 API의 요청·응답 형식을 보고 브라우저에서 바로 호출해 볼 수 있습니다.",
+    "swaggerOpen": "Swagger 열기",
+    "openapiTitle": "OpenAPI 명세 (JSON)",
+    "openapiDesc": "Postman, Insomnia나 클라이언트 코드 생성기로 가져갈 수 있습니다.",
+    "openapiDownload": "OpenAPI JSON 받기",
+    "guideTitle": "연동 가이드 (Markdown)",
+    "guideDesc": "메시지 형식, 좌표, 심각도, 알람 묶기, 객체가 사라지는 규칙, 오류 코드, 점검표를 담았습니다.",
+    "guideDownload": "연동 가이드 받기",
+    "modelTitle": "3D 모델 규격 (Markdown)",
+    "modelDesc": "납품하는 3D 모델이 지켜야 할 파일 형식, 단위, 축, 층, 크기를 정합니다.",
+    "modelDownload": "모델 규격 받기"
   },
   "devices": {
     "manage": "장치 배치",
