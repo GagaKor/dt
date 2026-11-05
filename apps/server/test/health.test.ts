@@ -33,6 +33,19 @@ test('openapi json and docs are served', async () => {
   await close();
 });
 
+test('openapi declares the integration key so Swagger can send it to the ingest endpoints', async () => {
+  const { app, close } = await createTestApp();
+  const spec = (await app.inject({ method: 'GET', url: '/api/openapi.json' })).json();
+  expect(spec.components.securitySchemes.integrationKey).toMatchObject({
+    type: 'http',
+    scheme: 'bearer',
+  });
+  for (const path of ['/api/ingest/events', '/api/ingest/positions']) {
+    expect(spec.paths[path].post.security).toEqual([{ integrationKey: [] }]);
+  }
+  await close();
+});
+
 test('errors use the common shape', async () => {
   const { app, close } = await createTestApp();
   const missing = await app.inject({ method: 'GET', url: '/api/nope' });
