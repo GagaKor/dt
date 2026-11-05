@@ -2,14 +2,15 @@ import { validateFloorRanges, type Floor, type FloorInput, type FloorSuggestion 
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useParams } from 'react-router';
+import { Link, useNavigate, useParams } from 'react-router';
 import { ApiError } from '../../api/client';
-import { useFloors, useSaveFloors, useSites } from '../../api/queries';
+import { useDevices, useFloors, useSaveFloors, useSites } from '../../api/queries';
 import { uploadModel } from '../../api/uploadModel';
 import { FloorEditor, applySuggestion, editedRange } from '../../components/FloorEditor';
 import { ChevronLeftIcon, ChevronRightIcon, UploadIcon } from '../../components/icons';
 import { buttonClass } from '../../components/ui';
 import { useSettledValue } from '../../hooks/useSettledValue';
+import { floorsChanged, useFloorDraftStore } from '../../state/floorDraftStore';
 import { useViewStore } from '../../state/viewStore';
 import { FloorRangeBand } from '../../three/FloorRangeBand';
 import { FloorSelector } from '../../three/FloorSelector';
@@ -33,15 +34,26 @@ export function SiteDetailPage() {
   const { t } = useTranslation();
   const { siteId = '' } = useParams();
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const sites = useSites();
   const site = sites.data?.find((s) => s.id === siteId);
   const floors = useFloors(siteId);
+  const devices = useDevices(siteId);
   const save = useSaveFloors(siteId);
   const selectedFloorId = useViewStore((s) => s.selectedFloorId);
   const showOtherFloors = useViewStore((s) => s.showOtherFloors);
 
-  const [draft, setDraft] = useState<FloorInput[] | null>(null);
+  // Unsaved edits live in a store, not in this page, so leaving the page keeps them.
+  const storedDraft = useFloorDraftStore((s) => s.drafts[siteId]);
+  const setStoredDraft = useFloorDraftStore((s) => s.setDraft);
+  const clearDraft = useFloorDraftStore((s) => s.clearDraft);
+  const savedInputs = useMemo(() => floors.data?.map(toInput) ?? null, [floors.data]);
+  const draft = storedDraft ?? savedInputs;
+  const dirty = !!storedDraft && !!floors.data && floorsChanged(storedDraft, floors.data);
+  const setDraft = (v: FloorInput[]) => setStoredDraft(siteId, v);
+
   const [suggestion, setSuggestion] = useState<FloorSuggestion[] | null>(null);
+  const [autoFilled, setAutoFilled] = useState<number | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
   const [progress, setProgress] = useState<number | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -49,9 +61,6 @@ export function SiteDetailPage() {
   const [saved, setSaved] = useState(false);
   const [activeRow, setActiveRow] = useState<number | null>(null);
 
-  useEffect(() => {
-    if (draft === null && floors.data) setDraft(floors.data.map(toInput));
-  }, [draft, floors.data]);
   useEffect(() => () => useViewStore.getState().setSelectedFloor(null), []);
 
   const value = draft ?? [];
@@ -79,7 +88,16 @@ export function SiteDetailPage() {
     try {
       const r = await uploadModel(siteId, file, setProgress);
       setWarnings(r.warnings);
-      setSuggestion(r.floorSuggestion);
+      setSuggestion(null);
+      setAutoFilled(null);
+      if (r.floorSuggestion.length > 0) {
+        // Until a device sits on a floor, replacing the floors loses nothing: fill them in.
+        // Afterwards the suggestion waits for a click, since saving it would orphan devices.
+        if (devices.data?.length === 0) {
+          setDraft(applySuggestion(r.floorSuggestion, t('floors.roofName')));
+          setAutoFilled(r.floorSuggestion.length);
+        } else setSuggestion(r.floorSuggestion);
+      }
       await qc.invalidateQueries({ queryKey: ['sites'] });
     } catch (e) {
       setUploadError(
@@ -92,13 +110,15 @@ export function SiteDetailPage() {
     }
   };
 
-  const onSave = () => {
+  const onSave = (then?: () => void) => {
     setSaveError(null);
     setSaved(false);
     save.mutate(value, {
-      onSuccess: (list) => {
-        setDraft(list.map(toInput));
+      onSuccess: () => {
+        clearDraft(siteId);
+        setAutoFilled(null);
         setSaved(true);
+        then?.();
       },
       onError: (e) => {
         if (e instanceof ApiError && e.code === 'floor_in_use') {
@@ -122,13 +142,26 @@ export function SiteDetailPage() {
           </Link>
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-xl font-semibold">{site?.name ?? t('pages.siteDetail')}</h1>
-            <Link
-              to={`/settings/sites/${siteId}/devices`}
-              className={`${buttonClass('primary', 'md')} ml-auto`}
-            >
-              {t('devices.manage')}
-              <ChevronRightIcon />
-            </Link>
+            {dirty ? (
+              // Devices can only reference saved floors, so pending edits are saved on the way.
+              <button
+                type="button"
+                disabled={issues.length > 0 || save.isPending}
+                onClick={() => onSave(() => navigate(`/settings/sites/${siteId}/devices`))}
+                className={`${buttonClass('primary', 'md')} ml-auto`}
+              >
+                {t('devices.saveAndManage')}
+                <ChevronRightIcon />
+              </button>
+            ) : (
+              <Link
+                to={`/settings/sites/${siteId}/devices`}
+                className={`${buttonClass('primary', 'md')} ml-auto`}
+              >
+                {t('devices.manage')}
+                <ChevronRightIcon />
+              </Link>
+            )}
           </div>
         </div>
 
@@ -176,6 +209,11 @@ export function SiteDetailPage() {
 
         <section className="flex flex-col gap-2">
           <h2 className="font-medium">{t('floors.title')}</h2>
+          {autoFilled !== null && dirty && (
+            <p role="status" className="text-sm text-blue-700 dark:text-blue-300">
+              {t('floors.autoFilled', { count: autoFilled })}
+            </p>
+          )}
           {suggestion && (
             <button
               type="button"
@@ -210,12 +248,31 @@ export function SiteDetailPage() {
               type="button"
               data-testid="floors-save"
               disabled={draft === null || issues.length > 0 || save.isPending}
-              onClick={onSave}
+              onClick={() => onSave()}
               className={buttonClass('primary', 'md')}
             >
               {t('common.save')}
             </button>
-            {saved && (
+            {dirty && (
+              <>
+                <button
+                  type="button"
+                  disabled={save.isPending}
+                  onClick={() => {
+                    clearDraft(siteId);
+                    setAutoFilled(null);
+                    setSaveError(null);
+                  }}
+                  className={buttonClass('secondary', 'md')}
+                >
+                  {t('floors.revert')}
+                </button>
+                <span className="text-sm text-amber-700 dark:text-amber-400">
+                  {t('floors.unsaved')}
+                </span>
+              </>
+            )}
+            {saved && !dirty && (
               <span role="status" className="text-sm text-green-600">
                 {t('floors.saved')}
               </span>

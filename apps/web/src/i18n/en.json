@@ -73,7 +73,7 @@
       "model_too_large": "The file is too large.",
       "unknown": "Upload failed. Please try again."
     },
-    "uploadHint": "glTF binary (.glb) in metres. A new upload replaces the current model; floors and devices stay."
+    "uploadHint": "glTF binary (.glb) in metres. A new upload replaces the current model. Before any device is placed, the floors found in the model are filled in for you to save."
   },
   "floors": {
     "title": "Floors",
@@ -99,7 +99,10 @@
       "invalid_floors": "The floor ranges are invalid.",
       "load": "Could not load floors."
     },
-    "roofName": "Roof"
+    "roofName": "Roof",
+    "autoFilled": "Filled in {{count}} floors found in the model. Save to keep them.",
+    "unsaved": "Unsaved changes",
+    "revert": "Revert"
   },
   "keys": {
     "name": "Key name",
@@ -191,7 +194,10 @@
       "name": "Name",
       "type": "Type",
       "floor": "Floor"
-    }
+    },
+    "saveAndManage": "Save and place devices",
+    "unsavedFloors": "Floor changes are not saved yet. Devices can only go on saved floors.",
+    "goToFloors": "Go to floors"
   },
   "monitor": {
     "view3d": "3D view",
