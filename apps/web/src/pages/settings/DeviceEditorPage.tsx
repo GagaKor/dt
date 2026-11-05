@@ -42,6 +42,8 @@ import {
   type Editing,
   type Transition,
 } from './deviceEditorLogic';
+import { ChevronLeftIcon, TrashIcon } from '../../components/icons';
+import { buttonClass, toggleClass } from '../../components/ui';
 
 type Tool = 'select' | DeviceType;
 type GizmoMode = 'translate' | 'rotate';
@@ -91,12 +93,7 @@ function Gizmo({ target, mode, onGrab, onRelease }: GizmoProps) {
   );
 }
 
-const toolClass = (active: boolean) =>
-  `rounded border px-3 py-1 text-sm disabled:opacity-50 ${
-    active
-      ? 'border-slate-800 bg-slate-800 text-white dark:border-slate-200 dark:bg-slate-200 dark:text-slate-900'
-      : 'border-slate-300 hover:bg-slate-100 dark:border-slate-600 dark:hover:bg-slate-700'
-  }`;
+const toolClass = (active: boolean) => toggleClass(active);
 
 export function DeviceEditorPage() {
   const { t } = useTranslation();
@@ -270,7 +267,7 @@ export function DeviceEditorPage() {
             data-testid="view-top"
             disabled={!model.bounds}
             onClick={() => fly(topView)}
-            className={toolClass(false)}
+            className={buttonClass('secondary')}
           >
             {t('devices.view.top')}
           </button>
@@ -278,7 +275,7 @@ export function DeviceEditorPage() {
             type="button"
             disabled={!model.bounds}
             onClick={() => fly((b) => obliqueView(b))}
-            className={toolClass(false)}
+            className={buttonClass('secondary')}
           >
             {t('devices.view.oblique')}
           </button>
@@ -356,19 +353,20 @@ export function DeviceEditorPage() {
 
       <aside className="flex w-full shrink-0 flex-col gap-6 lg:w-96 lg:overflow-y-auto">
         <div className="flex flex-col gap-1">
+          <Link
+            to={`/settings/sites/${siteId}`}
+            className={`${buttonClass('ghost', 'xs')} -ml-2.5 self-start`}
+          >
+            <ChevronLeftIcon className="size-3.5" />
+            {t('devices.backToSite')}
+          </Link>
           <h1 className="text-xl font-semibold">
             {site ? `${site.name} · ${t('pages.devices')}` : t('pages.devices')}
           </h1>
-          <Link
-            to={`/settings/sites/${siteId}`}
-            className="text-sm text-slate-600 underline-offset-2 hover:underline dark:text-slate-300"
-          >
-            {t('devices.backToSite')}
-          </Link>
         </div>
 
         {editing && (
-          <section className="flex flex-col gap-3 rounded border border-slate-200 p-3 dark:border-slate-700">
+          <section className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-3 shadow-xs dark:border-slate-700 dark:bg-slate-800">
             <h2 className="font-medium">
               {editing.isNew ? t('devices.newDevice') : t('devices.editDevice')}
             </h2>
@@ -393,7 +391,7 @@ export function DeviceEditorPage() {
             <div className="flex flex-wrap items-center gap-2 text-sm">
               <button
                 type="button"
-                className="rounded border border-slate-300 px-3 py-1 dark:border-slate-600"
+                className={buttonClass('secondary')}
                 onClick={() => startEditing(null)}
               >
                 {t('common.close')}
@@ -405,14 +403,14 @@ export function DeviceEditorPage() {
                     <button
                       type="button"
                       disabled={del.isPending}
-                      className="rounded bg-red-600 px-3 py-1 text-white disabled:opacity-50"
+                      className={buttonClass('dangerSolid')}
                       onClick={onDelete}
                     >
                       {t('devices.delete')}
                     </button>
                     <button
                       type="button"
-                      className="rounded border border-slate-300 px-3 py-1 dark:border-slate-600"
+                      className={buttonClass('secondary')}
                       onClick={() => setConfirmDelete(false)}
                     >
                       {t('common.cancel')}
@@ -421,9 +419,10 @@ export function DeviceEditorPage() {
                 ) : (
                   <button
                     type="button"
-                    className="ml-auto text-red-600"
+                    className={`${buttonClass('danger')} ml-auto`}
                     onClick={() => setConfirmDelete(true)}
                   >
+                    <TrashIcon />
                     {t('devices.delete')}
                   </button>
                 ))}

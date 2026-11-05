@@ -17,6 +17,7 @@ import { useStats } from '../api/queries';
 import { SEVERITY_COLOR } from '../components/severityStyles';
 import { useRealtimeStore } from '../realtime/store';
 import { customRange, rangeForPreset, type Preset, type StatsRange } from './dashboard/range';
+import { buttonClass, inputClass, toggleClass } from '../components/ui';
 
 export const REFETCH_MIN_INTERVAL_MS = 5_000;
 const PRESETS: Preset[] = ['today', '7d', '30d'];
@@ -266,14 +267,8 @@ export function DashboardPage() {
       : t('dashboard.loadError')
     : null;
 
-  const btn = (active: boolean) =>
-    `rounded border px-3 py-1 text-sm ${
-      active
-        ? 'border-slate-800 bg-slate-800 text-white dark:border-slate-200 dark:bg-slate-200 dark:text-slate-900'
-        : 'border-slate-300 hover:bg-slate-100 dark:border-slate-600 dark:hover:bg-slate-700'
-    }`;
-  const input =
-    'rounded border border-slate-300 bg-transparent px-2 py-1 text-sm dark:border-slate-600';
+  const btn = (active: boolean) => toggleClass(active);
+  const input = inputClass();
 
   return (
     <div className="flex flex-col gap-4 p-4">
@@ -302,7 +297,7 @@ export function DashboardPage() {
           type="button"
           onClick={refresh}
           disabled={stats.isFetching}
-          className={`${btn(false)} ml-auto disabled:opacity-50`}
+          className={`${buttonClass('secondary')} ml-auto`}
         >
           {t('dashboard.refresh')}
         </button>
@@ -334,7 +329,7 @@ export function DashboardPage() {
               className={input}
             />
           </label>
-          <button type="submit" disabled={!custom} className={`${btn(false)} disabled:opacity-50`}>
+          <button type="submit" disabled={!custom} className={buttonClass('primary', 'md')}>
             {t('dashboard.apply')}
           </button>
         </form>

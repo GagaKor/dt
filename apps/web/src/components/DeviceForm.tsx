@@ -2,6 +2,7 @@ import { DeviceIdSchema, modelToPlan, type DeviceCreate, type DeviceType } from 
 import type { FormEvent, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ApiError } from '../api/client';
+import { buttonClass } from './ui';
 
 export type DeviceFormField = 'id' | 'name' | 'yawDeg' | 'pitchDeg' | 'hfovDeg' | 'rangeM';
 /** Error codes (keys under `devices.error`) per field; `form` holds errors without a field. */
@@ -250,7 +251,7 @@ export function DeviceForm({
           type="submit"
           data-testid="device-form-save"
           disabled={invalid || saving}
-          className="self-start rounded bg-slate-800 px-3 py-1 text-white disabled:opacity-50 dark:bg-slate-200 dark:text-slate-900"
+          className={`${buttonClass('primary', 'md')} self-start`}
         >
           {t('common.save')}
         </button>

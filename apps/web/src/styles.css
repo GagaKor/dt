@@ -14,3 +14,20 @@
 body {
   @apply bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100;
 }
+
+/* Tailwind 4 gives buttons the default arrow cursor. Anything clickable shows the hand. */
+@layer base {
+  button:not(:disabled),
+  [role='button']:not(:disabled),
+  select:not(:disabled),
+  summary,
+  label:has(> input:is([type='checkbox'], [type='radio'], [type='file']):not(:disabled)),
+  input[type='checkbox']:not(:disabled),
+  input[type='radio']:not(:disabled) {
+    cursor: pointer;
+  }
+  button:disabled,
+  select:disabled {
+    cursor: not-allowed;
+  }
+}

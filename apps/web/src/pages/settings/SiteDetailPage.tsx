@@ -7,6 +7,8 @@ import { ApiError } from '../../api/client';
 import { useFloors, useSaveFloors, useSites } from '../../api/queries';
 import { uploadModel } from '../../api/uploadModel';
 import { FloorEditor, applySuggestion, editedRange } from '../../components/FloorEditor';
+import { ChevronLeftIcon, ChevronRightIcon, UploadIcon } from '../../components/icons';
+import { buttonClass } from '../../components/ui';
 import { useSettledValue } from '../../hooks/useSettledValue';
 import { useViewStore } from '../../state/viewStore';
 import { FloorRangeBand } from '../../three/FloorRangeBand';
@@ -113,29 +115,45 @@ export function SiteDetailPage() {
   return (
     <div className="grid gap-6 p-6 lg:grid-cols-2">
       <div className="flex flex-col gap-6">
-        <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-xl font-semibold">{site?.name ?? t('pages.siteDetail')}</h1>
-          <Link
-            to={`/settings/sites/${siteId}/devices`}
-            className="ml-auto rounded border border-slate-300 px-3 py-1 text-sm hover:bg-slate-100 dark:border-slate-600 dark:hover:bg-slate-700"
-          >
-            {t('devices.manage')}
+        <div className="flex flex-col gap-1">
+          <Link to="/settings/sites" className={`${buttonClass('ghost', 'xs')} -ml-2.5 self-start`}>
+            <ChevronLeftIcon className="size-3.5" />
+            {t('pages.sites')}
           </Link>
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-xl font-semibold">{site?.name ?? t('pages.siteDetail')}</h1>
+            <Link
+              to={`/settings/sites/${siteId}/devices`}
+              className={`${buttonClass('primary', 'md')} ml-auto`}
+            >
+              {t('devices.manage')}
+              <ChevronRightIcon />
+            </Link>
+          </div>
         </div>
 
         <section className="flex flex-col gap-2">
           <h2 className="font-medium">{t('model.title')}</h2>
-          <input
-            data-testid="model-file-input"
-            type="file"
-            accept=".glb,model/gltf-binary"
-            aria-label={t('model.upload')}
-            disabled={progress !== null}
-            onChange={(e) => {
-              void onFile(e.target.files?.[0]);
-              e.target.value = '';
-            }}
-          />
+          {/* The native file input's button is unstyled and not translated; the label is the button. */}
+          <label
+            className={`${buttonClass('secondary', 'md')} self-start has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-50 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-blue-600`}
+          >
+            <UploadIcon />
+            {t('model.upload')}
+            <input
+              data-testid="model-file-input"
+              type="file"
+              accept=".glb,model/gltf-binary"
+              aria-label={t('model.upload')}
+              disabled={progress !== null}
+              className="sr-only"
+              onChange={(e) => {
+                void onFile(e.target.files?.[0]);
+                e.target.value = '';
+              }}
+            />
+          </label>
+          <p className="text-xs text-slate-500 dark:text-slate-400">{t('model.uploadHint')}</p>
           {progress !== null && (
             <progress
               value={progress}
@@ -162,9 +180,9 @@ export function SiteDetailPage() {
             <button
               type="button"
               data-testid="floor-apply-suggestion"
-              className="self-start rounded border border-slate-300 px-3 py-1 text-sm dark:border-slate-600"
+              className={`${buttonClass('primary')} self-start`}
               onClick={() => {
-                setDraft(applySuggestion(suggestion));
+                setDraft(applySuggestion(suggestion, t('floors.roofName')));
                 setSuggestion(null);
               }}
             >
@@ -193,7 +211,7 @@ export function SiteDetailPage() {
               data-testid="floors-save"
               disabled={draft === null || issues.length > 0 || save.isPending}
               onClick={onSave}
-              className="rounded bg-slate-800 px-3 py-1 text-white disabled:opacity-50 dark:bg-slate-200 dark:text-slate-900"
+              className={buttonClass('primary', 'md')}
             >
               {t('common.save')}
             </button>

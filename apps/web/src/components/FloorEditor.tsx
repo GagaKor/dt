@@ -1,6 +1,8 @@
 import type { FloorInput, FloorRange, FloorRangeIssue } from '@dt/shared';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { PlusIcon, TrashIcon } from './icons';
+import { buttonClass, inputClass } from './ui';
 
 export interface FloorEditorProps {
   value: FloorInput[];
@@ -23,18 +25,23 @@ export function editedRange(
   return { name, elevationMin, elevationMax };
 }
 
-export function applySuggestion(s: FloorRange[]): FloorInput[] {
+/** Suggested ranges as editor rows: storeys are numbered from the bottom, a roof gets `roofName`. */
+export function applySuggestion(
+  s: (FloorRange & { roof?: boolean })[],
+  roofName = 'Roof',
+): FloorInput[] {
+  let storey = 0;
   return [...s]
     .sort((a, b) => a.elevationMin - b.elevationMin)
-    .map((r, i) => ({
-      name: `${i + 1}F`,
+    .map((r) => ({
+      name: r.roof ? roofName : `${++storey}F`,
       elevationMin: r.elevationMin,
       elevationMax: r.elevationMax,
     }));
 }
 
-const inputClass =
-  'rounded border border-slate-300 bg-white px-2 py-1 text-sm dark:border-slate-600 dark:bg-slate-800';
+const NAME_INPUT = `${inputClass('sm')} w-24`;
+const HEIGHT_INPUT = `${inputClass('sm')} w-28`;
 
 export function FloorEditor({ value, onChange, issues, onActiveChange }: FloorEditorProps) {
   const { t } = useTranslation();
@@ -57,6 +64,16 @@ export function FloorEditor({ value, onChange, issues, onActiveChange }: FloorEd
   return (
     <div className="flex flex-col gap-2">
       <p className="text-sm text-slate-500 dark:text-slate-400">{t('floors.help')}</p>
+      {count > 0 && (
+        <div
+          aria-hidden
+          className="flex gap-2 px-1 text-xs font-medium text-slate-500 dark:text-slate-400"
+        >
+          <span className="w-24">{t('floors.name')}</span>
+          <span className="w-28">{t('floors.min')}</span>
+          <span className="w-28">{t('floors.max')}</span>
+        </div>
+      )}
       {value.map((f, i) => {
         const rowIssues = issues.filter((x) => x.index === i);
         return (
@@ -64,7 +81,7 @@ export function FloorEditor({ value, onChange, issues, onActiveChange }: FloorEd
             key={f.id ?? i}
             data-testid="floor-row"
             data-active={active === i || undefined}
-            className={`flex flex-col gap-1 rounded px-1 py-0.5 ${
+            className={`flex flex-col gap-1 rounded-md px-1 py-1 ${
               active === i ? 'bg-blue-50 dark:bg-slate-700/60' : ''
             }`}
             onFocus={() => setFocused({ index: i, count })}
@@ -77,7 +94,7 @@ export function FloorEditor({ value, onChange, issues, onActiveChange }: FloorEd
             <div className="flex items-center gap-2">
               <input
                 aria-label={t('floors.name')}
-                className={`${inputClass} w-24`}
+                className={NAME_INPUT}
                 value={f.name}
                 onChange={(e) => patch(i, { name: e.target.value })}
               />
@@ -85,7 +102,7 @@ export function FloorEditor({ value, onChange, issues, onActiveChange }: FloorEd
                 aria-label={t('floors.min')}
                 type="number"
                 step="0.1"
-                className={`${inputClass} w-24`}
+                className={HEIGHT_INPUT}
                 value={Number.isNaN(f.elevationMin) ? '' : f.elevationMin}
                 onChange={(e) => patch(i, { elevationMin: num(e.target.value) })}
               />
@@ -93,15 +110,16 @@ export function FloorEditor({ value, onChange, issues, onActiveChange }: FloorEd
                 aria-label={t('floors.max')}
                 type="number"
                 step="0.1"
-                className={`${inputClass} w-24`}
+                className={HEIGHT_INPUT}
                 value={Number.isNaN(f.elevationMax) ? '' : f.elevationMax}
                 onChange={(e) => patch(i, { elevationMax: num(e.target.value) })}
               />
               <button
                 type="button"
-                className="rounded px-2 py-1 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-slate-700"
+                className={buttonClass('danger')}
                 onClick={() => onChange(value.filter((_, j) => j !== i))}
               >
+                <TrashIcon />
                 {t('floors.remove')}
               </button>
             </div>
@@ -115,7 +133,7 @@ export function FloorEditor({ value, onChange, issues, onActiveChange }: FloorEd
       })}
       <button
         type="button"
-        className="self-start rounded border border-slate-300 px-3 py-1 text-sm dark:border-slate-600"
+        className={`${buttonClass('secondary')} self-start`}
         onClick={() => {
           const last = value[value.length - 1];
           const min = last ? last.elevationMax : 0;
@@ -125,6 +143,7 @@ export function FloorEditor({ value, onChange, issues, onActiveChange }: FloorEd
           ]);
         }}
       >
+        <PlusIcon />
         {t('floors.add')}
       </button>
     </div>

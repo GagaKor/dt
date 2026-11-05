@@ -72,7 +72,8 @@
       "unsupported_extension": "지원하지 않는 glTF 확장을 사용합니다.",
       "model_too_large": "파일이 너무 큽니다.",
       "unknown": "업로드에 실패했습니다. 다시 시도해 주세요."
-    }
+    },
+    "uploadHint": "미터 단위 glTF 바이너리(.glb). 새로 올리면 지금 모델을 바꾸고, 층과 장치는 그대로 둡니다."
   },
   "floors": {
     "title": "층",
@@ -97,7 +98,8 @@
       "floor_in_use": "장치가 사용 중인 층은 삭제할 수 없습니다. 장치: {{devices}}",
       "invalid_floors": "층 범위가 올바르지 않습니다.",
       "load": "층 정보를 불러오지 못했습니다."
-    }
+    },
+    "roofName": "지붕"
   },
   "keys": {
     "name": "키 이름",
@@ -182,6 +184,13 @@
       "device_not_found": "장치가 더 이상 없습니다.",
       "load": "장치 목록을 불러오지 못했습니다.",
       "unknown": "장치를 저장하지 못했습니다. 다시 시도해 주세요."
+    },
+    "listHint": "장치를 누르면 정보를 고치거나 3D에서 옮길 수 있습니다.",
+    "columns": {
+      "id": "ID",
+      "name": "이름",
+      "type": "종류",
+      "floor": "층"
     }
   },
   "monitor": {
@@ -207,7 +216,9 @@
       "addNote": "메모 추가",
       "note": "메모 (선택)",
       "ack": "확인",
-      "ackError": "알람을 확인 처리하지 못했습니다. 다시 시도해 주세요."
+      "ackError": "알람을 확인 처리하지 못했습니다. 다시 시도해 주세요.",
+      "locate": "3D 화면에서 위치 보기",
+      "locateShort": "위치 보기"
     }
   },
   "toast": {

@@ -72,7 +72,8 @@
       "unsupported_extension": "The model uses an unsupported glTF extension.",
       "model_too_large": "The file is too large.",
       "unknown": "Upload failed. Please try again."
-    }
+    },
+    "uploadHint": "glTF binary (.glb) in metres. A new upload replaces the current model; floors and devices stay."
   },
   "floors": {
     "title": "Floors",
@@ -97,7 +98,8 @@
       "floor_in_use": "Floors in use by devices cannot be removed. Devices: {{devices}}",
       "invalid_floors": "The floor ranges are invalid.",
       "load": "Could not load floors."
-    }
+    },
+    "roofName": "Roof"
   },
   "keys": {
     "name": "Key name",
@@ -182,6 +184,13 @@
       "device_not_found": "The device no longer exists.",
       "load": "Could not load devices.",
       "unknown": "Could not save the device. Please try again."
+    },
+    "listHint": "Click a device to edit it or move it in the 3D view.",
+    "columns": {
+      "id": "ID",
+      "name": "Name",
+      "type": "Type",
+      "floor": "Floor"
     }
   },
   "monitor": {
@@ -207,7 +216,9 @@
       "addNote": "Add note",
       "note": "Note (optional)",
       "ack": "Acknowledge",
-      "ackError": "Could not acknowledge the alarm. Please try again."
+      "ackError": "Could not acknowledge the alarm. Please try again.",
+      "locate": "Show where it is in the 3D view",
+      "locateShort": "Locate"
     }
   },
   "toast": {
