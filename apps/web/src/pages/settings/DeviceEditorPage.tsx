@@ -107,6 +107,7 @@ export function DeviceEditorPage() {
   const patch = usePatchDevice(siteId);
   const del = useDeleteDevice(siteId);
   const selectedFloorId = useViewStore((s) => s.selectedFloorId);
+  const showOtherFloors = useViewStore((s) => s.showOtherFloors);
   const model = useSiteModel(siteId, site?.modelVersion ?? null);
 
   const floorList = useMemo(() => floors.data ?? [], [floors.data]);
@@ -306,6 +307,7 @@ export function DeviceEditorPage() {
                     scene={model.scene}
                     floors={floorList}
                     selectedFloorId={selectedFloorId}
+                    showOtherFloors={showOtherFloors}
                   />
                 </group>
                 <DeviceMarkers
@@ -313,6 +315,7 @@ export function DeviceEditorPage() {
                   selectedId={editingKey(editing)}
                   onSelect={placing ? undefined : onMarkerSelect}
                   selectedRef={setTarget}
+                  floors={floorList}
                 />
                 {editing && target && !saving && (
                   <Gizmo target={target} mode={gizmoMode} onRelease={onGizmoRelease} />

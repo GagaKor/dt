@@ -36,6 +36,7 @@ export function SiteDetailPage() {
   const floors = useFloors(siteId);
   const save = useSaveFloors(siteId);
   const selectedFloorId = useViewStore((s) => s.selectedFloorId);
+  const showOtherFloors = useViewStore((s) => s.showOtherFloors);
 
   const [draft, setDraft] = useState<FloorInput[] | null>(null);
   const [suggestion, setSuggestion] = useState<FloorRange[] | null>(null);
@@ -220,6 +221,7 @@ export function SiteDetailPage() {
                 scene={model.scene}
                 floors={floors.data ?? []}
                 selectedFloorId={selectedFloorId}
+                showOtherFloors={showOtherFloors}
                 range={cutRange}
               />
               <FloorRangeBand bounds={model.bounds} range={preview} />

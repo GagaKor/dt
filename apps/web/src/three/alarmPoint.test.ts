@@ -1,6 +1,6 @@
 import type { Alarm, Device } from '@dt/shared';
 import { expect, test } from 'vitest';
-import { alarmPoint } from './alarmPoint';
+import { alarmFloorId, alarmPoint } from './alarmPoint';
 
 const device: Device = {
   id: 'cam-1',
@@ -37,4 +37,11 @@ test('an unknown floor falls back to the device height', () => {
 test('an alarm without coordinates sits at the device', () => {
   expect(alarmPoint(at({}), device, floorY)).toEqual([3, 6.8, -4]);
   expect(alarmPoint(at({}), undefined, floorY)).toBeNull();
+});
+
+test('an alarm belongs to its own floor, else to its device floor', () => {
+  const device = { floorId: 'dev-floor' } as Device;
+  expect(alarmFloorId({ floorId: 'f2' }, device)).toBe('f2');
+  expect(alarmFloorId({ floorId: null }, device)).toBe('dev-floor');
+  expect(alarmFloorId({ floorId: null }, undefined)).toBeNull();
 });

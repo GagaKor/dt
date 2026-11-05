@@ -16,7 +16,7 @@ const floor = (id: string, name: string, elevationMin: number, sortOrder: number
 });
 const floors = [floor('a', '1F', 0, 0), floor('b', '2F', 4, 1), floor('c', '3F', 8, 2)];
 
-beforeEach(() => useViewStore.setState({ selectedFloorId: null }));
+beforeEach(() => useViewStore.setState({ selectedFloorId: null, showOtherFloors: false }));
 
 test('lists All first, then floors from the top down', () => {
   render(<FloorSelector floors={floors} />);
@@ -32,4 +32,15 @@ test('clicking a floor selects it and All clears it', async () => {
   expect(screen.getByRole('button', { name: '2F' })).toHaveAttribute('aria-pressed', 'true');
   await userEvent.click(screen.getByRole('button', { name: 'All' }));
   expect(useViewStore.getState().selectedFloorId).toBeNull();
+});
+
+test('a selected floor offers to show the other floors, off by default', async () => {
+  render(<FloorSelector floors={floors} />);
+  expect(screen.queryByRole('checkbox', { name: 'Show other floors' })).toBeNull();
+  await userEvent.click(screen.getByRole('button', { name: '2F' }));
+  const toggle = screen.getByRole('checkbox', { name: 'Show other floors' });
+  expect(toggle).not.toBeChecked();
+  await userEvent.click(toggle);
+  expect(useViewStore.getState().showOtherFloors).toBe(true);
+  expect(toggle).toBeChecked();
 });

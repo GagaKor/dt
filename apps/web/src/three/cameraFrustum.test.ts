@@ -1,5 +1,6 @@
+import { Vector3 } from 'three';
 import { expect, test } from 'vitest';
-import { cameraFrustumGeometry } from './cameraFrustum';
+import { cameraFrustumGeometry, frustumClipPlanes } from './cameraFrustum';
 
 test('frustum base for hfov 90, range 10', () => {
   const pos = cameraFrustumGeometry(90, 10).getAttribute('position');
@@ -18,4 +19,14 @@ test('apex sits at the origin and the faces close the pyramid', () => {
   expect(Math.abs(pos.getY(1))).toBeCloseTo(Math.abs(pos.getX(1)) / 2);
   // 4 sides + 2 base triangles
   expect(geo.getIndex()?.count).toBe(18);
+});
+
+test('the frustum clip planes keep only the part inside its floor height range', () => {
+  const planes = frustumClipPlanes({ elevationMin: 4, elevationMax: 8 })!;
+  const inside = (y: number) => planes.every((p) => p.distanceToPoint(new Vector3(0, y, 0)) >= 0);
+  expect(inside(4.1)).toBe(true);
+  expect(inside(7.9)).toBe(true);
+  expect(inside(3.9)).toBe(false);
+  expect(inside(8.1)).toBe(false);
+  expect(frustumClipPlanes(undefined)).toBeNull();
 });

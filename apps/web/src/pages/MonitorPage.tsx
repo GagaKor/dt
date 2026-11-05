@@ -31,6 +31,7 @@ export function MonitorPage() {
   const devices = useDevices(site?.id);
   const model = useSiteModel(siteId, site?.modelVersion ?? null);
   const selectedFloorId = useViewStore((s) => s.selectedFloorId);
+  const showOtherFloors = useViewStore((s) => s.showOtherFloors);
   const rejected = useRealtimeStore((s) => s.rejectedSiteId === siteId);
   const alarmMap = useRealtimeStore((s) => (s.siteId === siteId ? s.alarms : NO_ALARMS));
 
@@ -68,8 +69,9 @@ export function MonitorPage() {
                   scene={model.scene}
                   floors={floorList}
                   selectedFloorId={selectedFloorId}
+                  showOtherFloors={showOtherFloors}
                 />
-                <DeviceMarkers devices={deviceList} selectedId={null} />
+                <DeviceMarkers devices={deviceList} selectedId={null} floors={floorList} />
                 <AlarmRings alarms={alarms} devices={deviceList} resolveFloorY={resolveFloorY} />
                 <ObjectMarkers siteId={siteId} resolveFloorY={resolveFloorY} />
                 <CoordinateReadout model={model.scene} floors={floorList} />
