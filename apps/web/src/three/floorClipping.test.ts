@@ -37,3 +37,19 @@ test('floorAtElevation maps a height to the floor that owns it', () => {
   expect(floorAtElevation(floors, 9)).toBeNull();
   expect(floorAtElevation(floors, -1)).toBeNull();
 });
+
+test('a range that reaches the model top keeps its top: there is no floor above to cut away', () => {
+  const roof = { elevationMin: 11, elevationMax: 13.15 };
+  expect(floorVisibleBand(roof, 13.15).hi).toBeGreaterThan(13.15);
+  // float32 model bounds land a hair off the stored range
+  expect(floorVisibleBand(roof, 13.149999618).hi).toBeGreaterThan(13.15);
+  const { inside } = floorClipPlanes(roof, 13.15);
+  expect(visible(inside, false, 13.1)).toBe(true);
+});
+
+test('a range below the model top is still cut under the slab above it', () => {
+  expect(floorVisibleBand({ elevationMin: 8, elevationMax: 12 }, 13.4)).toEqual({
+    lo: 7.95,
+    hi: 11.5,
+  });
+});
