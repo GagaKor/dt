@@ -117,7 +117,8 @@ export function useSaveFloors(siteId: string) {
   return useMutation({
     mutationFn: (floors: FloorInput[]) =>
       apiFetch<Floor[]>(`/api/sites/${siteId}/floors`, { method: 'PUT', json: floors }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['sites', siteId, 'floors'] }),
+    // The answer is the full saved list: use it at once, so a cleared draft never shows the old one.
+    onSuccess: (list) => qc.setQueryData(['sites', siteId, 'floors'], list),
   });
 }
 

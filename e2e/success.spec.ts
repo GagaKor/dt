@@ -36,9 +36,8 @@ test('success criteria: model to acknowledged alarm on the dashboard', async ({
     await expect(page.getByRole('heading', { name: 'E2E Office' })).toBeVisible();
   });
 
-  await test.step('upload the model and apply the floor suggestion', async () => {
+  await test.step('upload the model; the suggested floors are filled in', async () => {
     await page.getByTestId('model-file-input').setInputFiles(MODEL);
-    await page.getByTestId('floor-apply-suggestion').click();
     const rows = page.getByTestId('floor-row');
     await expect(rows).toHaveCount(3);
     for (const [i, name] of ['1F', '2F', '3F'].entries()) {
