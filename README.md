@@ -1,8 +1,10 @@
-# dt
+# Cutaway
 
 **English** | [한국어](README.ko.md)
 
-An open-source web app for **3D indoor monitoring**. Upload a glTF model of a building, place cameras and sensors on its floors, and watch alarms and moving objects (people, vehicles, things) in real time. External systems feed it over a small HTTP API.
+Cutaway is an open-source web app for **3D indoor monitoring**. Upload a glTF model of a building, place cameras and sensors on its floors, and watch alarms and moving objects (people, vehicles, things) in real time. External systems feed it over a small HTTP API.
+
+The name comes from a cutaway drawing: the floors above the one you watch are cut away, and the floors in between stay see-through. The repository, Docker image and package names remain `dt`.
 
 ![Monitoring screen with a 3D office model, alarm panel and key numbers](docs/images/monitor.png)
 

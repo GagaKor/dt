@@ -1,6 +1,6 @@
 # 배포 가이드
 
-dt는 Docker 이미지 하나(화면 정적 파일 + API 서버)와 PostgreSQL로 이루어진다. 메시지 큐나 캐시 서버는 없다. 서버는 **한 대, 인스턴스 하나**로 돌리는 것을 전제로 한다.
+Cutaway는 Docker 이미지 하나(화면 정적 파일 + API 서버)와 PostgreSQL로 이루어진다. 메시지 큐나 캐시 서버는 없다. 서버는 **한 대, 인스턴스 하나**로 돌리는 것을 전제로 한다.
 
 ## 1. 환경변수
 
@@ -159,7 +159,7 @@ docker compose up -d --no-build
 
 ### 앞단 프록시와 HTTPS
 
-dt는 HTTP만 낸다. HTTPS가 필요하면 앞에 리버스 프록시(nginx, Caddy 등)를 둔다. 실시간 화면이 WebSocket(`/api/ws`)을 쓰므로 프록시가 `Upgrade` 헤더를 전달해야 한다. 서버가 25초마다 ping을 보내므로 프록시의 유휴 시간 제한(nginx `proxy_read_timeout` 기본 60초)은 그대로 둬도 된다. 화면은 60초 동안 아무 메시지도 받지 못하면 연결이 끊긴 것으로 보고 다시 연결한다. 모델 업로드가 크므로 프록시의 요청 본문 한도도 `MAX_MODEL_MB` 이상으로 올린다.
+Cutaway는 HTTP만 낸다. HTTPS가 필요하면 앞에 리버스 프록시(nginx, Caddy 등)를 둔다. 실시간 화면이 WebSocket(`/api/ws`)을 쓰므로 프록시가 `Upgrade` 헤더를 전달해야 한다. 서버가 25초마다 ping을 보내므로 프록시의 유휴 시간 제한(nginx `proxy_read_timeout` 기본 60초)은 그대로 둬도 된다. 화면은 60초 동안 아무 메시지도 받지 못하면 연결이 끊긴 것으로 보고 다시 연결한다. 모델 업로드가 크므로 프록시의 요청 본문 한도도 `MAX_MODEL_MB` 이상으로 올린다.
 
 프록시가 HTTPS를 처리하면 아래 세 가지를 한다. 하지 않으면 로그인 쿠키가 HTTPS에서도 `Secure` 없이 나간다.
 
