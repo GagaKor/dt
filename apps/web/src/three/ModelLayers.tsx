@@ -1,6 +1,6 @@
 import type { Floor, FloorRange } from '@dt/shared';
 import { useEffect, useLayoutEffect, useMemo } from 'react';
-import { Mesh, MeshStandardMaterial, type Material, type Object3D, type Plane } from 'three';
+import { Box3, Mesh, MeshStandardMaterial, type Material, type Object3D, type Plane } from 'three';
 import { floorClipPlanes } from './floorClipping';
 import { isModelReleased, retainModel } from './modelLifetime';
 
@@ -28,7 +28,8 @@ const noRaycast = () => {};
 // Clones share geometry (and textures) with the source scene; only the materials
 // created here belong to the layers and are disposed with them.
 function buildLayers(scene: Object3D, elevationMin: number, elevationMax: number): Layers {
-  const { inside, outside } = floorClipPlanes({ elevationMin, elevationMax });
+  const modelTop = new Box3().setFromObject(scene).max.y;
+  const { inside, outside } = floorClipPlanes({ elevationMin, elevationMax }, modelTop);
   const owned: Material[] = [];
   const clipped = new Map<Material, Material>();
   const clip = (m: Material, planes: Plane[], intersection: boolean) => {

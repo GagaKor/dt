@@ -2,7 +2,9 @@ import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import { useRealtimeStore, type Toast } from '../realtime/store';
+import { XIcon } from './icons';
 import { SEVERITY_BAR } from './severityStyles';
+import { iconButtonClass } from './ui';
 
 export const TOAST_MS = 10_000;
 
@@ -25,7 +27,7 @@ function ToastCard({ toast }: { toast: Toast }) {
           dismiss();
           navigate(`/sites/${encodeURIComponent(toast.siteId)}/monitor`);
         }}
-        className="flex min-w-0 flex-1 flex-col px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-700"
+        className="flex min-w-0 flex-1 cursor-pointer flex-col px-3 py-2 text-left transition-colors hover:bg-slate-50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-600 dark:hover:bg-slate-700"
       >
         <span className="text-xs font-semibold text-red-600 dark:text-red-400">
           {t('toast.newAlarm', { severity: t(`severity.${toast.severity}`) })}
@@ -39,9 +41,9 @@ function ToastCard({ toast }: { toast: Toast }) {
         type="button"
         aria-label={t('toast.dismiss')}
         onClick={dismiss}
-        className="px-3 text-lg leading-none text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+        className={`${iconButtonClass('ghost', 'sm')} m-1 self-start`}
       >
-        ×
+        <XIcon />
       </button>
     </div>
   );

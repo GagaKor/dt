@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
+import { DownloadIcon, ExternalLinkIcon } from '../../components/icons';
+import { buttonClass, textLinkClass } from '../../components/ui';
 import integrationGuide from '../../../../../docs/integration.md?raw';
 import modelSpec from '../../../../../docs/model-spec.md?raw';
 
@@ -15,9 +17,8 @@ function downloadText(filename: string, text: string): void {
 }
 
 const cardClass =
-  'flex flex-col gap-2 rounded border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800';
-const actionClass =
-  'self-start rounded border border-slate-300 px-3 py-1 text-sm hover:bg-slate-100 dark:border-slate-600 dark:hover:bg-slate-700';
+  'flex flex-col gap-2 rounded-lg border border-slate-200 bg-white p-4 shadow-xs dark:border-slate-700 dark:bg-slate-800';
+const actionClass = `${buttonClass('secondary')} mt-auto self-start`;
 
 function Card(p: { title: string; description: string; children: ReactNode }) {
   return (
@@ -39,7 +40,7 @@ export function IntegrationPage() {
       <h1 className="text-xl font-semibold">{t('pages.docs')}</h1>
       <p className="text-sm text-slate-600 dark:text-slate-300">
         {t('docs.intro')}{' '}
-        <Link to="/settings/keys" className="text-blue-700 underline dark:text-blue-300">
+        <Link to="/settings/keys" className={textLinkClass}>
           {t('docs.keysLink')}
         </Link>
       </p>
@@ -58,12 +59,19 @@ export function IntegrationPage() {
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Card title={t('docs.swaggerTitle')} description={t('docs.swaggerDesc')}>
-          <a href="/api/docs" target="_blank" rel="noopener noreferrer" className={actionClass}>
+          <a
+            href="/api/docs"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`${buttonClass('primary')} mt-auto self-start`}
+          >
             {t('docs.swaggerOpen')}
+            <ExternalLinkIcon />
           </a>
         </Card>
         <Card title={t('docs.openapiTitle')} description={t('docs.openapiDesc')}>
           <a href="/api/openapi.json" download="cutaway-openapi.json" className={actionClass}>
+            <DownloadIcon />
             {t('docs.openapiDownload')}
           </a>
         </Card>
@@ -73,6 +81,7 @@ export function IntegrationPage() {
             className={actionClass}
             onClick={() => downloadText('cutaway-integration-guide.md', integrationGuide)}
           >
+            <DownloadIcon />
             {t('docs.guideDownload')}
           </button>
         </Card>
@@ -82,6 +91,7 @@ export function IntegrationPage() {
             className={actionClass}
             onClick={() => downloadText('cutaway-model-spec.md', modelSpec)}
           >
+            <DownloadIcon />
             {t('docs.modelDownload')}
           </button>
         </Card>

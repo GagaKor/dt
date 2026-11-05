@@ -6,7 +6,9 @@ import { useRealtimeStore } from '../realtime/store';
 import { useViewStore } from '../state/viewStore';
 import { alarmPoint } from '../three/alarmPoint';
 import { focusView } from '../three/viewPresets';
+import { CheckIcon, LocateIcon, NoteIcon } from './icons';
 import { SEVERITY_BAR } from './severityStyles';
+import { buttonClass, inputClass } from './ui';
 
 export interface AlarmPanelProps {
   siteId: string;
@@ -54,7 +56,8 @@ function AlarmItem({ alarm, floorName, time, onFocus }: AlarmItemProps) {
         <button
           type="button"
           onClick={() => onFocus(alarm)}
-          className="flex flex-col gap-0.5 rounded text-left hover:bg-slate-50 dark:hover:bg-slate-700/50"
+          title={t('monitor.alarms.locate')}
+          className="group -mx-1.5 flex cursor-pointer flex-col gap-0.5 rounded-md px-1.5 py-1 text-left transition-colors hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-blue-600 dark:hover:bg-slate-700/60"
         >
           <span className="flex items-center gap-2">
             <span className="truncate font-medium">{alarm.eventType}</span>
@@ -73,9 +76,15 @@ function AlarmItem({ alarm, floorName, time, onFocus }: AlarmItemProps) {
               {time}
             </time>
           </span>
-          <span className="truncate text-xs text-slate-600 dark:text-slate-300">
-            {t(`severity.${alarm.severity}`)} · {alarm.deviceName ?? alarm.deviceId} ·{' '}
-            {floorName ?? t('monitor.alarms.noFloor')}
+          <span className="flex items-center gap-2">
+            <span className="truncate text-xs text-slate-600 dark:text-slate-300">
+              {t(`severity.${alarm.severity}`)} · {alarm.deviceName ?? alarm.deviceId} ·{' '}
+              {floorName ?? t('monitor.alarms.noFloor')}
+            </span>
+            <span className="ml-auto flex shrink-0 items-center gap-1 text-xs font-medium text-blue-700 opacity-70 group-hover:opacity-100 dark:text-blue-300">
+              <LocateIcon className="size-3.5" />
+              {t('monitor.alarms.locateShort')}
+            </span>
           </span>
         </button>
         <div className="flex items-center gap-2">
@@ -89,14 +98,15 @@ function AlarmItem({ alarm, floorName, time, onFocus }: AlarmItemProps) {
               autoFocus
               onChange={(e) => setNote(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && submit()}
-              className="min-w-0 flex-1 rounded border border-slate-300 bg-transparent px-2 py-0.5 text-sm dark:border-slate-600"
+              className={`${inputClass('xs')} min-w-0 flex-1`}
             />
           ) : (
             <button
               type="button"
               onClick={() => setNoteOpen(true)}
-              className="text-xs text-slate-500 hover:underline dark:text-slate-400"
+              className={buttonClass('secondary', 'xs')}
             >
+              <NoteIcon className="size-3.5" />
               {t('monitor.alarms.addNote')}
             </button>
           )}
@@ -105,8 +115,9 @@ function AlarmItem({ alarm, floorName, time, onFocus }: AlarmItemProps) {
             data-testid="alarm-ack"
             disabled={ack.isPending}
             onClick={submit}
-            className="ml-auto shrink-0 rounded bg-slate-800 px-2.5 py-1 text-xs font-medium text-white hover:bg-slate-700 disabled:opacity-50 dark:bg-slate-200 dark:text-slate-900 dark:hover:bg-white"
+            className={`${buttonClass('primary', 'xs')} ml-auto`}
           >
+            <CheckIcon className="size-3.5" />
             {t('monitor.alarms.ack')}
           </button>
         </div>

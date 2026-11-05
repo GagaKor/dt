@@ -7,6 +7,7 @@ import { useSites } from '../api/queries';
 import { setLang, type Lang } from '../i18n';
 import { useRealtimeStore } from '../realtime/store';
 import { Toasts } from './Toasts';
+import { buttonClass, inputClass } from './ui';
 
 export interface AppShellProps {
   siteId?: string;
@@ -14,10 +15,10 @@ export interface AppShellProps {
 }
 
 const tabClass = ({ isActive }: { isActive: boolean }) =>
-  `rounded px-3 py-1.5 text-sm font-medium ${
+  `rounded-md px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-blue-600 ${
     isActive
-      ? 'bg-slate-200 dark:bg-slate-700'
-      : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'
+      ? 'bg-slate-200 text-slate-900 dark:bg-slate-700 dark:text-white'
+      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white'
   }`;
 
 export function AppShell({ siteId, children }: AppShellProps) {
@@ -46,7 +47,7 @@ export function AppShell({ siteId, children }: AppShellProps) {
         <span className="text-lg font-bold tracking-tight">{t('app.name')}</span>
         <select
           aria-label={t('nav.site')}
-          className="rounded border border-slate-300 bg-transparent px-2 py-1 text-sm dark:border-slate-600"
+          className={`${inputClass('sm')} pr-8`}
           value={siteId ?? ''}
           onChange={(e) => e.target.value && navigate(`/sites/${e.target.value}/monitor`)}
         >
@@ -93,19 +94,17 @@ export function AppShell({ siteId, children }: AppShellProps) {
                 type="button"
                 aria-pressed={lang === l}
                 onClick={() => setLang(l)}
-                className={`px-2 py-1 first:rounded-l last:rounded-r border border-slate-300 dark:border-slate-600 ${
-                  lang === l ? 'bg-slate-800 text-white dark:bg-slate-200 dark:text-slate-900' : ''
+                className={`h-8 border border-slate-300 px-2.5 font-medium transition-colors first:rounded-l-md last:rounded-r-md focus-visible:outline-2 focus-visible:outline-blue-600 dark:border-slate-500 ${
+                  lang === l
+                    ? 'border-slate-800 bg-slate-800 text-white dark:border-slate-100 dark:bg-slate-100 dark:text-slate-900'
+                    : 'bg-white text-slate-700 hover:bg-slate-50 dark:bg-slate-700 dark:text-slate-100 dark:hover:bg-slate-600'
                 }`}
               >
                 {l.toUpperCase()}
               </button>
             ))}
           </div>
-          <button
-            type="button"
-            onClick={logout}
-            className="rounded border border-slate-300 px-3 py-1 text-sm hover:bg-slate-100 dark:border-slate-600 dark:hover:bg-slate-700"
-          >
+          <button type="button" onClick={logout} className={buttonClass('secondary', 'sm')}>
             {t('nav.logout')}
           </button>
         </div>

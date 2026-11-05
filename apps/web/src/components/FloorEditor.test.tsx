@@ -28,6 +28,19 @@ test('applying suggestion fills 1F..3F with suggested ranges', () => {
   expect(out[2]).toMatchObject({ elevationMin: 6, elevationMax: 9 });
 });
 
+test('a suggested roof range gets the roof name and does not count as a storey', () => {
+  const out = applySuggestion(
+    [
+      { elevationMin: 5, elevationMax: 11 },
+      { elevationMin: 11, elevationMax: 13.15, roof: true },
+      { elevationMin: 0, elevationMax: 5 },
+    ],
+    'Roof',
+  );
+  expect(out.map((f) => f.name)).toEqual(['1F', '2F', 'Roof']);
+  expect(out[2]).toEqual({ name: 'Roof', elevationMin: 11, elevationMax: 13.15 });
+});
+
 const twoFloors: FloorInput[] = [
   { name: '1F', elevationMin: 0, elevationMax: 4 },
   { name: '2F', elevationMin: 4, elevationMax: 8 },
