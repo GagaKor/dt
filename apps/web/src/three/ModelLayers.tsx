@@ -1,4 +1,4 @@
-import type { Floor } from '@dt/shared';
+import type { Floor, FloorRange } from '@dt/shared';
 import { useEffect, useLayoutEffect, useMemo } from 'react';
 import { Mesh, MeshStandardMaterial, type Material, type Object3D, type Plane } from 'three';
 import { floorClipPlanes } from './floorClipping';
@@ -8,6 +8,8 @@ export interface ModelLayersProps {
   scene: Object3D | null;
   floors: Floor[];
   selectedFloorId: string | null;
+  /** Cut the model to this height range instead of the selected floor (e.g. a range being edited). */
+  range?: FloorRange | null;
 }
 
 interface Layers {
@@ -76,10 +78,21 @@ function buildLayers(scene: Object3D, elevationMin: number, elevationMax: number
   };
 }
 
-export function ModelLayers({ scene: source, floors, selectedFloorId }: ModelLayersProps) {
+/** The height range to cut the model to: `range` if given, else the selected floor, else none. */
+export function layerRange(
+  floors: Floor[],
+  selectedFloorId: string | null,
+  range: FloorRange | null | undefined,
+): FloorRange | null {
+  if (range) return { elevationMin: range.elevationMin, elevationMax: range.elevationMax };
+  const floor = floors.find((f) => f.id === selectedFloorId);
+  return floor ? { elevationMin: floor.elevationMin, elevationMax: floor.elevationMax } : null;
+}
+
+export function ModelLayers({ scene: source, floors, selectedFloorId, range }: ModelLayersProps) {
   // A released scene may already be disposed; drawing it would re-upload its buffers.
   const scene = source && !isModelReleased(source) ? source : null;
-  const floor = floors.find((f) => f.id === selectedFloorId) ?? null;
+  const floor = layerRange(floors, selectedFloorId, range);
   // Keyed on the range values so a refetched, unchanged floor list keeps the clones.
   const min = floor?.elevationMin;
   const max = floor?.elevationMax;

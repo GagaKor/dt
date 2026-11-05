@@ -1,10 +1,26 @@
 import type { FloorInput, FloorRange, FloorRangeIssue } from '@dt/shared';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 export interface FloorEditorProps {
   value: FloorInput[];
   onChange(v: FloorInput[]): void;
   issues: FloorRangeIssue[];
+  /** The row to preview: the hovered row, else the row with focus, else null. */
+  onActiveChange?(index: number | null): void;
+}
+
+/** The range of row `index` when both heights are numbers and min < max; otherwise null. */
+export function editedRange(
+  rows: FloorInput[],
+  index: number | null,
+): (FloorRange & { name: string }) | null {
+  const row = index === null ? undefined : rows[index];
+  if (!row) return null;
+  const { name, elevationMin, elevationMax } = row;
+  if (!Number.isFinite(elevationMin) || !Number.isFinite(elevationMax)) return null;
+  if (elevationMin >= elevationMax) return null;
+  return { name, elevationMin, elevationMax };
 }
 
 export function applySuggestion(s: FloorRange[]): FloorInput[] {
@@ -20,18 +36,44 @@ export function applySuggestion(s: FloorRange[]): FloorInput[] {
 const inputClass =
   'rounded border border-slate-300 bg-white px-2 py-1 text-sm dark:border-slate-600 dark:bg-slate-800';
 
-export function FloorEditor({ value, onChange, issues }: FloorEditorProps) {
+export function FloorEditor({ value, onChange, issues, onActiveChange }: FloorEditorProps) {
   const { t } = useTranslation();
+  const count = value.length;
+  // Focus is remembered with the row count: a removed row takes its focus with it (React fires no
+  // blur for it), and the rows below shift up. Hover stays positional: after a removal the pointer
+  // is over whichever row moved under it.
+  const [focused, setFocused] = useState<{ index: number; count: number } | null>(null);
+  const [hovered, setHovered] = useState<number | null>(null);
+  const focusedIndex = focused?.count === count ? focused.index : null;
+  const hoveredIndex = hovered !== null && hovered < count ? hovered : null;
+  const active = hoveredIndex ?? focusedIndex;
+  useEffect(() => onActiveChange?.(active), [active, onActiveChange]);
+  useEffect(() => () => onActiveChange?.(null), [onActiveChange]);
+
   const patch = (i: number, p: Partial<FloorInput>) =>
     onChange(value.map((f, j) => (j === i ? { ...f, ...p } : f)));
   const num = (v: string) => (v === '' ? Number.NaN : Number(v));
 
   return (
     <div className="flex flex-col gap-2">
+      <p className="text-sm text-slate-500 dark:text-slate-400">{t('floors.help')}</p>
       {value.map((f, i) => {
         const rowIssues = issues.filter((x) => x.index === i);
         return (
-          <div key={f.id ?? i} data-testid="floor-row" className="flex flex-col gap-1">
+          <div
+            key={f.id ?? i}
+            data-testid="floor-row"
+            data-active={active === i || undefined}
+            className={`flex flex-col gap-1 rounded px-1 py-0.5 ${
+              active === i ? 'bg-blue-50 dark:bg-slate-700/60' : ''
+            }`}
+            onFocus={() => setFocused({ index: i, count })}
+            onBlur={(e) => {
+              if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFocused(null);
+            }}
+            onMouseEnter={() => setHovered(i)}
+            onMouseLeave={() => setHovered(null)}
+          >
             <div className="flex items-center gap-2">
               <input
                 aria-label={t('floors.name')}
