@@ -73,10 +73,12 @@
   },
   "floors": {
     "title": "Floors",
+    "help": "A floor is a height range of the model: set where each floor starts and ends. Adding a range does not change the 3D model. Hover over or edit a row to preview its range in 3D.",
     "name": "Name",
     "min": "Min elevation (m)",
     "max": "Max elevation (m)",
-    "add": "Add floor",
+    "add": "Add floor range",
+    "preview": "{{name}} · {{min}}–{{max}} m",
     "remove": "Remove",
     "applySuggestion": "Apply suggested floors",
     "saved": "Saved",
