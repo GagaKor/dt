@@ -37,8 +37,10 @@ export function applySuggestion(s: FloorSuggestion[], roofName = 'Roof'): FloorI
     }));
 }
 
-const NAME_INPUT = `${inputClass('sm')} w-24`;
-const HEIGHT_INPUT = `${inputClass('sm')} w-28`;
+const NAME_WIDTH = 'min-w-0 flex-1 sm:w-24 sm:flex-none';
+const HEIGHT_WIDTH = 'min-w-0 flex-1 sm:w-28 sm:flex-none';
+const NAME_INPUT = `${inputClass('sm')} ${NAME_WIDTH}`;
+const HEIGHT_INPUT = `${inputClass('sm')} ${HEIGHT_WIDTH}`;
 
 export function FloorEditor({ value, onChange, issues, onActiveChange }: FloorEditorProps) {
   const { t } = useTranslation();
@@ -66,9 +68,11 @@ export function FloorEditor({ value, onChange, issues, onActiveChange }: FloorEd
           aria-hidden
           className="flex gap-2 px-1 text-xs font-medium text-slate-500 dark:text-slate-400"
         >
-          <span className="w-24">{t('floors.name')}</span>
-          <span className="w-28">{t('floors.min')}</span>
-          <span className="w-28">{t('floors.max')}</span>
+          <span className={`truncate ${NAME_WIDTH}`}>{t('floors.name')}</span>
+          <span className={`truncate ${HEIGHT_WIDTH}`}>{t('floors.min')}</span>
+          <span className={`truncate ${HEIGHT_WIDTH}`}>{t('floors.max')}</span>
+          {/* Keeps the headings over their columns while the rows end in a button. */}
+          <span className="w-10 shrink-0 sm:hidden" />
         </div>
       )}
       {value.map((f, i) => {
@@ -117,7 +121,7 @@ export function FloorEditor({ value, onChange, issues, onActiveChange }: FloorEd
                 onClick={() => onChange(value.filter((_, j) => j !== i))}
               >
                 <TrashIcon />
-                {t('floors.remove')}
+                <span className="max-sm:sr-only">{t('floors.remove')}</span>
               </button>
             </div>
             {rowIssues.map((x) => (

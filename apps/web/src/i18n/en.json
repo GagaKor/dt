@@ -36,7 +36,8 @@
     "allFloors": "All",
     "showOtherFloors": "Show other floors",
     "coordinates": "{{x}}, {{y}} (m) · {{floor}}",
-    "coordinatesNoFloor": "{{x}}, {{y}} (m)"
+    "coordinatesNoFloor": "{{x}}, {{y}} (m)",
+    "floorAlarms": "{{count}} unacknowledged alarms"
   },
   "common": {
     "save": "Save",
@@ -224,7 +225,10 @@
       "ack": "Acknowledge",
       "ackError": "Could not acknowledge the alarm. Please try again.",
       "locate": "Show where it is in the 3D view",
-      "locateShort": "Locate"
+      "locateShort": "Locate",
+      "otherFloors": "{{count}} on other floors",
+      "showAllFloors": "All floors",
+      "emptyOnFloor": "No unacknowledged alarms on {{floor}}."
     }
   },
   "toast": {

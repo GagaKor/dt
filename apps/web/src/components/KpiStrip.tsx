@@ -25,8 +25,8 @@ const STATUS_DOT: Record<RealtimeStatus, string> = {
 
 function Metric(p: { label: string; value: number | undefined; testId: string; alert?: boolean }) {
   return (
-    <div className="flex min-w-36 flex-col rounded border border-slate-200 px-3 py-1 dark:border-slate-700">
-      <span className="text-xs text-slate-500 dark:text-slate-400">{p.label}</span>
+    <div className="flex min-w-0 flex-1 flex-col rounded border sm:min-w-36 sm:flex-none border-slate-200 px-3 py-1 dark:border-slate-700">
+      <span className="truncate text-xs text-slate-500 dark:text-slate-400">{p.label}</span>
       <span
         data-testid={p.testId}
         className={`text-2xl font-semibold tabular-nums ${p.alert ? 'text-red-600 dark:text-red-400' : ''}`}
