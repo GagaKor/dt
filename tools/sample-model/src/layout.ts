@@ -332,7 +332,7 @@ function core(k: Kit, n: number) {
       true,
     );
   } else {
-    // Top floor: guard the half of the opening that has no flight going up.
+    // Top floor: no flight continues up, so rail off the part of the opening where it would start.
     k.box(
       'glass',
       STAIR_OPENING.x0,
@@ -367,7 +367,7 @@ function floor1(k: Kit) {
   k.plant(-19.2, -2.4);
   // Meeting room.
   k.glassX(-1.5, -12 + INT / 2, -4, [[-6.2, -5.2]]);
-  meetingRoom(k, -7.8, -5.7, 3.6, 3);
+  meetingRoom(k, -7.97, -5.7, 3.6, 3);
   k.box('screen', -11.94, -11.88, -6.6, -4.8, 1.0, 2.1);
   // Cafe (north-east), open to the corridor.
   k.box('wood', 6, 14, ZI0, ZI0 + 0.7, 0, 1.0);
@@ -382,16 +382,16 @@ function floor1(k: Kit) {
   // Training room (south-west).
   k.glassX(1.5, XI0, -10, [[-12.5, -11.5]]);
   k.wallZ('wall', -10, CS, ZI1);
-  for (const z of [3.6, 5.6, 7.6])
-    for (const [a, b] of [
-      [-18.6, -16.2],
-      [-15.4, -13.0],
+  for (const x of [-17.8, -15.2, -12.6])
+    for (const [z0, z1] of [
+      [2.6, 5.4],
+      [6.4, 9.2],
     ] as const) {
-      k.table('desk', a, b, z - 0.3, z + 0.3);
-      k.chair(a + 0.6, z + 0.75, 'N');
-      k.chair(b - 0.6, z + 0.75, 'N');
+      k.table('desk', x - 0.3, x + 0.3, z0, z1);
+      k.chair(x - 0.75, z0 + 0.7, 'E');
+      k.chair(x - 0.75, z1 - 0.7, 'E');
     }
-  k.box('screen', -10.12, -10.06, 3.2, 6.6, 1.0, 2.4);
+  k.box('screen', -10 - INT / 2 - 0.06, -10 - INT / 2, 4.2, 7.6, 1.0, 2.4);
   // Lobby: reception facing the entrance, two seating groups, plants.
   k.box('wood', -3, 3, 4.0, 4.6, 0, 1.1);
   k.table('desk', -2.6, 2.6, 3.0, 3.7);
@@ -435,13 +435,14 @@ function floor2(k: Kit) {
   ]);
   k.wallZ('wall', -14.6, ZI0, CN);
   k.wallZ('wall', -9.3, ZI0, CN);
-  for (const [cx, screenX] of [
-    [-17.2, -14.72],
-    [-11.95, -9.42],
-    [-6.65, -4.06],
+  // Screens hang on the west face of each room's east wall.
+  for (const [cx, face] of [
+    [-17.2, -14.6 - INT / 2],
+    [-11.95, -9.3 - INT / 2],
+    [-6.65, -4],
   ] as const) {
     meetingRoom(k, cx, -5.7, 2.4, 2);
-    k.box('screen', screenX, screenX + 0.06, -6.5, -4.9, 1.0, 2.0);
+    k.box('screen', face - 0.06, face, -6.5, -4.9, 1.0, 2.0);
   }
   // Pantry, open to the corridor.
   k.box('wood', 4.4, 10.6, ZI0, ZI0 + 0.65, 0, 0.95);

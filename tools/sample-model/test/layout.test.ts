@@ -4,30 +4,56 @@ import { FLOOR_PITCH, officeLayout, STAIR_OPENING, type Box } from '../src/layou
 const boxes = officeLayout();
 const base = (b: Box) =>
   b.group === 'Roof' ? 3 * FLOOR_PITCH : (Number(b.group[1]) - 1) * FLOOR_PITCH;
+/** Strict overlap; boxes that only touch (within 1 µm) do not count. */
 const overlaps = (b: Box, min: number[], max: number[]) =>
-  [0, 1, 2].every((i) => b.min[i]! < max[i]! && b.max[i]! > min[i]!);
+  [0, 1, 2].every((i) => b.min[i]! < max[i]! - 1e-6 && b.max[i]! > min[i]! + 1e-6);
 
 test('every box has a positive size', () => {
   for (const b of boxes) for (let i = 0; i < 3; i++) expect(b.max[i]).toBeGreaterThan(b.min[i]!);
 });
 
-test('stays within x ±20 m and less than 2 m above the roof', () => {
+test('stays inside the 40 x 20 m footprint and less than 2 m above the roof', () => {
   // Floor suggestion adds a floor above the roof when the model rises 2 m or more past it.
+  // Only the entrance canopy (1F, metal) reaches past the south wall, by 2 m.
   for (const b of boxes) {
+    const canopy = b.group === 'F1' && b.part === 'metal' && b.max[2] > 10;
     expect(b.min[0]).toBeGreaterThanOrEqual(-20);
     expect(b.max[0]).toBeLessThanOrEqual(20);
+    expect(b.min[2]).toBeGreaterThanOrEqual(canopy ? 10 : -10);
+    expect(b.max[2]).toBeLessThanOrEqual(canopy ? 12 : 10);
     expect(b.max[1]).toBeLessThan(3 * FLOOR_PITCH + 2);
   }
 });
 
-test('only stairs are walkable between 5 and 50 cm above a floor', () => {
+test('only stairs are walkable between 5 and 50 cm above any floor', () => {
   // The viewer puts object markers on the highest surface up to 0.5 m above the floor.
+  const floors = [0, FLOOR_PITCH, 2 * FLOOR_PITCH];
   const offenders = boxes.filter((b) => {
     if (b.part === 'stair') return false;
-    const top = b.max[1] - base(b);
-    return top > 0.05 + 1e-9 && top <= 0.5 + 1e-9;
+    return floors.some((y) => b.max[1] > y + 0.05 + 1e-9 && b.max[1] <= y + 0.5 + 1e-9);
   });
   expect(offenders).toEqual([]);
+});
+
+test('furniture does not cut into walls, glass, the facade or the core', () => {
+  const furniture = new Set<Box['part']>([
+    'desk',
+    'chair',
+    'wood',
+    'fabric',
+    'plant',
+    'pot',
+    'screen',
+  ]);
+  const structure = new Set<Box['part']>(['wall', 'glass', 'mullion', 'facade', 'core']);
+  const hits = boxes
+    .filter((f) => furniture.has(f.part))
+    .flatMap((f) =>
+      boxes
+        .filter((s) => s.group === f.group && structure.has(s.part) && overlaps(f, s.min, s.max))
+        .map((s) => ({ furniture: f, structure: s })),
+    );
+  expect(hits).toEqual([]);
 });
 
 test('the corridor stays clear on every floor', () => {

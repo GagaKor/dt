@@ -5,6 +5,7 @@ import { getBounds, type Document } from '@gltf-transform/core';
 import { validateBytes } from 'gltf-validator';
 import { expect, test } from 'vitest';
 import { buildOfficeDocument, writeOfficeGlb } from '../src/buildOffice';
+import { repoPath } from '../src/paths';
 
 const doc = buildOfficeDocument();
 const material = (d: Document, name: string) =>
@@ -79,4 +80,13 @@ test('written glb validates and stays small', async () => {
   const report = await validateBytes(new Uint8Array(bytes));
   expect(report.issues.numErrors).toBe(0);
   expect(bytes.byteLength).toBeLessThan(1_000_000);
+});
+
+test('the committed sample matches the generator', async () => {
+  // Regenerate with `pnpm --filter @dt/sample-model build:sample` after changing the layout.
+  const out = join(await mkdtemp(join(tmpdir(), 'dt-')), 'o.glb');
+  await writeOfficeGlb(out);
+  const fresh = await readFile(out);
+  const committed = await readFile(repoPath('samples', 'office-3f.glb'));
+  expect(fresh.equals(committed)).toBe(true);
 });
