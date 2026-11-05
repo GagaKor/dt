@@ -19,6 +19,7 @@ import {
   type DeviceFormErrors,
 } from '../../components/DeviceForm';
 import { DeviceList } from '../../components/DeviceList';
+import { UnsavedFloorsNotice } from '../../components/UnsavedFloorsNotice';
 import { useViewStore } from '../../state/viewStore';
 import { CoordinateReadout } from '../../three/CoordinateReadout';
 import { DeviceMarkers } from '../../three/DeviceMarkers';
@@ -364,6 +365,7 @@ export function DeviceEditorPage() {
             {site ? `${site.name} · ${t('pages.devices')}` : t('pages.devices')}
           </h1>
         </div>
+        {floors.data && <UnsavedFloorsNotice siteId={siteId} floors={floors.data} />}
 
         {editing && (
           <section className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-3 shadow-xs dark:border-slate-700 dark:bg-slate-800">
