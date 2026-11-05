@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useAlarmsAck, useDevices, useFloors } from '../api/queries';
 import { useRealtimeStore } from '../realtime/store';
 import { useViewStore } from '../state/viewStore';
-import { alarmPoint } from '../three/alarmPoint';
+import { alarmFloorId, alarmPoint } from '../three/alarmPoint';
 import { focusView } from '../three/viewPresets';
 import { CheckIcon, LocateIcon, NoteIcon } from './icons';
 import { SEVERITY_BAR } from './severityStyles';
@@ -149,6 +149,12 @@ export function AlarmPanel({ siteId }: AlarmPanelProps) {
     () => new Map<string, Device>((devices.data ?? []).map((d) => [d.id, d])),
     [devices.data],
   );
+  // The list follows the floor picked in the 3D view, so one floor's situation reads on its own.
+  const selectedFloorId = useViewStore((s) => s.selectedFloorId);
+  const floor = selectedFloorId ? floorById.get(selectedFloorId) : undefined;
+  const floorOf = (a: Alarm) => alarmFloorId(a, deviceById.get(a.deviceId));
+  const shown = floor ? alarms.filter((a) => floorOf(a) === floor.id) : alarms;
+  const elsewhere = alarms.length - shown.length;
 
   const focus = (alarm: Alarm) => {
     const view = useViewStore.getState();
@@ -168,25 +174,46 @@ export function AlarmPanel({ siteId }: AlarmPanelProps) {
         <h2 id="alarm-panel-title" className="font-semibold">
           {t('monitor.alarms.title')}
         </h2>
+        {floor && (
+          <span className="rounded bg-slate-800 px-1.5 text-xs font-semibold text-white dark:bg-slate-100 dark:text-slate-900">
+            {floor.name}
+          </span>
+        )}
         {total !== undefined && total > alarms.length && (
           <span className="text-xs text-slate-500 dark:text-slate-400">
             {t('monitor.alarms.partial', { shown: alarms.length, total })}
           </span>
         )}
+        {floor && (
+          <span className="ml-auto flex items-center gap-2 self-center">
+            {elsewhere > 0 && (
+              <span className="text-xs text-slate-500 dark:text-slate-400">
+                {t('monitor.alarms.otherFloors', { count: elsewhere })}
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={() => useViewStore.getState().setSelectedFloor(null)}
+              className={buttonClass('secondary', 'xs')}
+            >
+              {t('monitor.alarms.showAllFloors')}
+            </button>
+          </span>
+        )}
       </header>
-      {alarms.length === 0 ? (
+      {shown.length === 0 ? (
         <p className="p-3 text-sm text-slate-500 dark:text-slate-400">
-          {t('monitor.alarms.empty')}
+          {floor
+            ? t('monitor.alarms.emptyOnFloor', { floor: floor.name })
+            : t('monitor.alarms.empty')}
         </p>
       ) : (
         <ul className="min-h-0 flex-1 overflow-y-auto">
-          {alarms.map((a) => (
+          {shown.map((a) => (
             <AlarmItem
               key={a.id}
               alarm={a}
-              floorName={
-                floorById.get(a.floorId ?? deviceById.get(a.deviceId)?.floorId ?? '')?.name
-              }
+              floorName={floorById.get(floorOf(a) ?? '')?.name}
               time={formatTime(a.lastOccurredAt)}
               onFocus={focus}
             />

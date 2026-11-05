@@ -205,7 +205,7 @@ export function KeysPage() {
                   onClick={() => setConfirmId(k.id)}
                 >
                   <TrashIcon />
-                  {t('keys.revoke')}
+                  <span className="max-sm:sr-only">{t('keys.revoke')}</span>
                 </button>
               )}
             </li>
