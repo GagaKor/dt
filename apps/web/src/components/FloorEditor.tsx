@@ -1,4 +1,4 @@
-import type { FloorInput, FloorRange, FloorRangeIssue } from '@dt/shared';
+import type { FloorInput, FloorRange, FloorRangeIssue, FloorSuggestion } from '@dt/shared';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PlusIcon, TrashIcon } from './icons';
@@ -26,10 +26,7 @@ export function editedRange(
 }
 
 /** Suggested ranges as editor rows: storeys are numbered from the bottom, a roof gets `roofName`. */
-export function applySuggestion(
-  s: (FloorRange & { roof?: boolean })[],
-  roofName = 'Roof',
-): FloorInput[] {
+export function applySuggestion(s: FloorSuggestion[], roofName = 'Roof'): FloorInput[] {
   let storey = 0;
   return [...s]
     .sort((a, b) => a.elevationMin - b.elevationMin)

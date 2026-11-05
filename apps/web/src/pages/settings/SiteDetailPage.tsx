@@ -1,4 +1,4 @@
-import { validateFloorRanges, type Floor, type FloorInput, type FloorRange } from '@dt/shared';
+import { validateFloorRanges, type Floor, type FloorInput, type FloorSuggestion } from '@dt/shared';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -41,7 +41,7 @@ export function SiteDetailPage() {
   const showOtherFloors = useViewStore((s) => s.showOtherFloors);
 
   const [draft, setDraft] = useState<FloorInput[] | null>(null);
-  const [suggestion, setSuggestion] = useState<FloorRange[] | null>(null);
+  const [suggestion, setSuggestion] = useState<FloorSuggestion[] | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
   const [progress, setProgress] = useState<number | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
