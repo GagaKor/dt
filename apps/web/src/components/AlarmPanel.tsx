@@ -15,7 +15,7 @@ export interface AlarmPanelProps {
 const NO_ALARMS = new Map<string, Alarm>();
 const ACK_NOTE_MAX = 500;
 
-/** Newest first by the time dt received the alarm, like the server's lists. */
+/** Newest first by the time the server received the alarm, like the server's lists. */
 export function sortAlarms(alarms: Iterable<Alarm>): Alarm[] {
   return [...alarms].sort(
     (a, b) => Date.parse(b.lastReceivedAt) - Date.parse(a.lastReceivedAt) || (b.id > a.id ? 1 : -1),

@@ -40,7 +40,7 @@ export function LoginPage() {
         onSubmit={submit}
         className="w-full max-w-sm space-y-4 rounded-lg border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800"
       >
-        <h1 className="text-xl font-bold">dt</h1>
+        <h1 className="text-xl font-bold">{t('app.name')}</h1>
         <p className="text-sm text-slate-500">{t('login.title')}</p>
         <label className="block space-y-1 text-sm">
           <span>{t('login.username')}</span>

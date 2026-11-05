@@ -52,7 +52,11 @@ declare module 'fastify' {
 
 export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   // Default 1 MiB body limit: model uploads are multipart, capped by the multipart fileSize.
-  const app = Fastify({ logger: { level: deps.config.LOG_LEVEL } });
+  const app = Fastify({
+    logger: { level: deps.config.LOG_LEVEL },
+    // Lets request.protocol / request.ip follow X-Forwarded-* from a trusted reverse proxy.
+    trustProxy: deps.config.TRUST_PROXY,
+  });
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
 
@@ -93,7 +97,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   if (webDist) await app.register(fastifyStatic, { root: resolve(webDist) });
 
   await app.register(swagger, {
-    openapi: { info: { title: 'dt API', version: '0.1.0' } },
+    openapi: { info: { title: 'Cutaway API', version: '0.1.0' } },
     transform: jsonSchemaTransform,
   });
   await app.register(swaggerUi, { routePrefix: '/api/docs' });
