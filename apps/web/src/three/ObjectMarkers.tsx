@@ -1,6 +1,7 @@
 import type { ObjectType } from '@dt/shared';
 import { useFrame } from '@react-three/fiber';
 import { useEffect, useRef, useState } from 'react';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import {
   BoxGeometry,
   CapsuleGeometry,
@@ -40,10 +41,28 @@ interface Shape {
 
 let shapes: Record<ObjectType | 'unknown', Shape> | null = null;
 
-// One geometry per type for the whole app; markers only own their materials.
-function shapeFor(type: ObjectType | null): Shape {
+// Real proportions: 1.7 m tall, a round body about 0.36 m across (between shoulder width and
+// body depth, since positions carry no heading) and a head on top. Centred on its half height.
+const PERSON_HEIGHT_M = 1.7;
+const BODY_RADIUS_M = 0.18;
+const HEAD_RADIUS_M = 0.11;
+const BODY_TOP_M = 1.45;
+
+function personGeometry(): BufferGeometry {
+  const body = new CapsuleGeometry(BODY_RADIUS_M, BODY_TOP_M - 2 * BODY_RADIUS_M, 4, 12);
+  body.translate(0, BODY_TOP_M / 2 - PERSON_HEIGHT_M / 2, 0);
+  const head = new SphereGeometry(HEAD_RADIUS_M, 12, 8);
+  head.translate(0, PERSON_HEIGHT_M / 2 - HEAD_RADIUS_M, 0);
+  const merged = mergeGeometries([body.toNonIndexed(), head.toNonIndexed()])!;
+  body.dispose();
+  head.dispose();
+  return merged;
+}
+
+/** One geometry per type for the whole app; markers only own their materials. */
+export function shapeFor(type: ObjectType | null): Shape {
   shapes ??= {
-    person: { geometry: new CapsuleGeometry(0.3, 1.1, 4, 12), halfHeight: 0.3 + 1.1 / 2 },
+    person: { geometry: personGeometry(), halfHeight: PERSON_HEIGHT_M / 2 },
     vehicle: { geometry: new BoxGeometry(1.8, 1.4, 4.2), halfHeight: 0.7 },
     object: { geometry: new BoxGeometry(0.6, 0.6, 0.6), halfHeight: 0.3 },
     unknown: { geometry: new SphereGeometry(0.35, 16, 12), halfHeight: 0.35 },
