@@ -5,6 +5,7 @@ import {
   deviceMatches,
   floorsMatchSample,
   planSeedDevices,
+  toSimDevice,
   validateSimConfig,
 } from '../src/plan';
 
@@ -85,5 +86,34 @@ describe('validateSimConfig', () => {
     expect(() => validateSimConfig({ ...base, devices: [cam] }, true)).toThrow(/no sensors/);
     expect(() => validateSimConfig({ ...base, devices: [cam] }, false)).not.toThrow();
     expect(() => validateSimConfig({ ...base, devices: [cam, sensor] }, true)).not.toThrow();
+  });
+});
+
+describe('toSimDevice', () => {
+  const plan = planSeedDevices(floors);
+
+  it('keeps a camera plan position and view for the simulator', () => {
+    const cam = plan.find((d) => d.id === 'cam-2f-01')!;
+    expect(toSimDevice(cam)).toEqual({
+      id: 'cam-2f-01',
+      floor: 2,
+      type: 'camera',
+      x: -12,
+      y: 0,
+      yawDeg: 90,
+      hfovDeg: 90,
+      rangeM: 10,
+    });
+  });
+
+  it('turns model Z into plan y for sensors', () => {
+    const sensor = plan.find((d) => d.id === 'sensor-1f-01')!;
+    expect(toSimDevice(sensor)).toEqual({
+      id: 'sensor-1f-01',
+      floor: 1,
+      type: 'sensor',
+      x: -5,
+      y: 6,
+    });
   });
 });

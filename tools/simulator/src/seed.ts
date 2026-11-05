@@ -8,6 +8,7 @@ import {
   floorsMatchSample,
   planSeedDevices,
   SAMPLE_FLOORS,
+  toSimDevice,
 } from './plan';
 import type { SimDevice } from './scenarios';
 
@@ -58,8 +59,8 @@ export async function seed(
   const devices: SimDevice[] = [];
 
   for (const p of planSeedDevices(floors)) {
-    const { floorId, name, position, yawDeg, pitchDeg, ...sim } = p;
-    const body = { type: p.type, floorId, name, position, yawDeg, pitchDeg };
+    const { floorId, name, position, yawDeg, pitchDeg, hfovDeg, rangeM } = p;
+    const body = { type: p.type, floorId, name, position, yawDeg, pitchDeg, hfovDeg, rangeM };
     const cur = byId.get(p.id);
     try {
       if (!cur) {
@@ -77,7 +78,7 @@ export async function seed(
         );
       throw e;
     }
-    devices.push(sim);
+    devices.push(toSimDevice(p));
   }
   assertCompleteDevices(devices, floors.length);
 

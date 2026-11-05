@@ -11,6 +11,9 @@ export const SAMPLE_FLOORS = [
 ];
 
 const CAMERA_X = [-12, 12] as const;
+// Sent with every seeded camera, so the simulator knows what each one covers.
+export const SEED_HFOV_DEG = 90;
+export const SEED_RANGE_M = 10;
 const SENSOR_PLAN_XY: [number, number][] = [
   [-5, 6],
   [5, -6],
@@ -29,6 +32,8 @@ export interface PlannedDevice extends SimDevice {
   position: [number, number, number];
   yawDeg?: number;
   pitchDeg?: number;
+  hfovDeg?: number;
+  rangeM?: number;
 }
 
 export function planSeedDevices(floors: FloorLike[]): PlannedDevice[] {
@@ -47,6 +52,8 @@ export function planSeedDevices(floors: FloorLike[]): PlannedDevice[] {
           position: [x, floor.elevationMin + 3.0, 0],
           yawDeg: i === 0 ? 90 : 270,
           pitchDeg: -30,
+          hfovDeg: SEED_HFOV_DEG,
+          rangeM: SEED_RANGE_M,
         }),
       );
       SENSOR_PLAN_XY.forEach(([x, y], i) =>
@@ -97,4 +104,18 @@ export function validateSimConfig(cfg: SimConfig, needSensor: boolean): void {
     throw new Error('no cameras in .sim.json - run `pnpm sim seed` first');
   if (needSensor && !devices.some((d) => d.type === 'sensor'))
     throw new Error('no sensors in .sim.json - run `pnpm sim seed` first');
+}
+
+/** What the simulator keeps of a seeded device: id, floor, type, plan position and camera view. */
+export function toSimDevice(p: PlannedDevice): SimDevice {
+  const base: SimDevice = {
+    id: p.id,
+    floor: p.floor,
+    type: p.type,
+    x: p.position[0],
+    // Plan y is model -Z; `|| 0` keeps 0 from turning into -0.
+    y: -p.position[2] || 0,
+  };
+  if (p.type !== 'camera') return base;
+  return { ...base, yawDeg: p.yawDeg ?? 0, hfovDeg: p.hfovDeg, rangeM: p.rangeM };
 }
