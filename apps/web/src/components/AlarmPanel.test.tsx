@@ -183,3 +183,25 @@ test('ignores alarms the store holds for another site', () => {
   expect(screen.queryByTestId('alarm-item')).toBeNull();
   expect(screen.getByText('No unacknowledged alarms.')).toBeInTheDocument();
 });
+
+test('with a floor selected, lists only that floor and offers the other floors', async () => {
+  useViewStore.setState({ selectedFloorId: 'f2' });
+  setup([
+    alarm({ id: 'down', floorId: 'f1' }),
+    alarm({ id: 'up', floorId: 'f2', eventType: 'smoke' }),
+    alarm({ id: 'via-device', floorId: null }),
+  ]);
+  await waitFor(() => expect(screen.getAllByTestId('alarm-item')).toHaveLength(1));
+  expect(screen.getByTestId('alarm-item')).toHaveTextContent('smoke');
+  expect(screen.getByText('2 on other floors')).toBeVisible();
+  await userEvent.click(screen.getByRole('button', { name: 'All floors' }));
+  expect(useViewStore.getState().selectedFloorId).toBeNull();
+  expect(screen.getAllByTestId('alarm-item')).toHaveLength(3);
+});
+
+test('a selected floor without alarms says so', async () => {
+  useViewStore.setState({ selectedFloorId: 'f2' });
+  setup([alarm({ floorId: 'f1' })]);
+  expect(await screen.findByText('No unacknowledged alarms on 2F.')).toBeVisible();
+  expect(screen.queryByTestId('alarm-item')).toBeNull();
+});

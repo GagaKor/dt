@@ -36,7 +36,8 @@
     "allFloors": "전체",
     "showOtherFloors": "다른 층 보기",
     "coordinates": "{{x}}, {{y}} (m) · {{floor}}",
-    "coordinatesNoFloor": "{{x}}, {{y}} (m)"
+    "coordinatesNoFloor": "{{x}}, {{y}} (m)",
+    "floorAlarms": "미확인 알람 {{count}}건"
   },
   "common": {
     "save": "저장",
@@ -224,7 +225,10 @@
       "ack": "확인",
       "ackError": "알람을 확인 처리하지 못했습니다. 다시 시도해 주세요.",
       "locate": "3D 화면에서 위치 보기",
-      "locateShort": "위치 보기"
+      "locateShort": "위치 보기",
+      "otherFloors": "다른 층 {{count}}건",
+      "showAllFloors": "모든 층 보기",
+      "emptyOnFloor": "{{floor}}에는 미확인 알람이 없습니다."
     }
   },
   "toast": {

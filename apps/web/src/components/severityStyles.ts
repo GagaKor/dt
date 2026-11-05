@@ -14,3 +14,11 @@ export const SEVERITY_COLOR: Record<Severity, string> = {
   minor: '#facc15',
   info: '#0ea5e9',
 };
+
+/** Count badges in the severity hue, with a text colour that stays readable on it. */
+export const SEVERITY_BADGE: Record<Severity, string> = {
+  critical: 'bg-red-600 text-white',
+  major: 'bg-orange-500 text-white',
+  minor: 'bg-yellow-400 text-slate-900',
+  info: 'bg-sky-500 text-white',
+};

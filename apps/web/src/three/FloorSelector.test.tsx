@@ -44,3 +44,15 @@ test('a selected floor offers to show the other floors, off by default', async (
   expect(useViewStore.getState().showOtherFloors).toBe(true);
   expect(toggle).toBeChecked();
 });
+
+test('shows how many unacknowledged alarms each floor has, coloured by the most severe', () => {
+  render(
+    <FloorSelector floors={floors} alarms={new Map([['b', { count: 3, severity: 'major' }]])} />,
+  );
+  const badges = screen.getAllByTestId('floor-alarm-count');
+  expect(badges).toHaveLength(1);
+  expect(badges[0]).toHaveTextContent('3');
+  expect(badges[0]).toHaveClass('bg-orange-500');
+  expect(screen.getByRole('button', { name: '2F 3 unacknowledged alarms' })).toBeVisible();
+  expect(screen.getByRole('button', { name: '1F' })).toBeVisible();
+});

@@ -99,7 +99,7 @@ export function SitesPage() {
                   onClick={() => setEditing({ id: s.id, name: s.name })}
                 >
                   <PencilIcon />
-                  {t('sites.rename')}
+                  <span className="max-sm:sr-only">{t('sites.rename')}</span>
                 </button>
               )}
               {confirmId === s.id ? (
@@ -130,7 +130,7 @@ export function SitesPage() {
                   onClick={() => setConfirmId(s.id)}
                 >
                   <TrashIcon />
-                  {t('sites.delete')}
+                  <span className="max-sm:sr-only">{t('sites.delete')}</span>
                 </button>
               )}
             </span>

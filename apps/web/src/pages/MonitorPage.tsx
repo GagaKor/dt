@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useParams, useSearchParams } from 'react-router';
 import { useDevices, useFloors, useSites } from '../api/queries';
 import { AlarmPanel } from '../components/AlarmPanel';
+import { summarizeAlarmsByFloor } from '../components/floorAlarms';
 import { KpiStrip } from '../components/KpiStrip';
 import { useRealtimeStore } from '../realtime/store';
 import { useViewStore } from '../state/viewStore';
@@ -38,6 +39,10 @@ export function MonitorPage() {
   const floorList = useMemo(() => floors.data ?? [], [floors.data]);
   const deviceList = useMemo(() => devices.data ?? [], [devices.data]);
   const alarms = useMemo(() => [...alarmMap.values()], [alarmMap]);
+  const alarmsByFloor = useMemo(
+    () => summarizeAlarmsByFloor(alarms, new Map(deviceList.map((d) => [d.id, d]))),
+    [alarms, deviceList],
+  );
   // The resolver caches per scene, so it is rebuilt whenever the scene or the floors change.
   const resolveFloorY = useMemo(
     () => createFloorYResolver(model.scene, floorList),
@@ -53,12 +58,12 @@ export function MonitorPage() {
   if (!site) return <p className="p-6 text-slate-500">{t('app.loading')}</p>;
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div className="flex flex-col lg:h-full lg:min-h-0">
       <KpiStrip siteId={siteId} />
-      <div className="flex min-h-0 flex-1">
+      <div className="flex flex-col lg:min-h-0 lg:flex-1 lg:flex-row">
         <section
           aria-label={t('monitor.view3d')}
-          className="relative min-w-0 flex-1 overflow-hidden"
+          className="relative h-[60vh] min-h-80 min-w-0 overflow-hidden lg:h-auto lg:min-h-0 lg:flex-1"
         >
           {site.modelVersion === null ? (
             <p className="p-6 text-sm text-slate-500">{t('monitor.noModel')}</p>
@@ -82,7 +87,11 @@ export function MonitorPage() {
                 <CoordinateReadout model={model.scene} floors={floorList} />
                 {showFps && <Stats />}
               </SiteCanvas>
-              <FloorSelector floors={floorList} className="absolute right-2 top-2" />
+              <FloorSelector
+                floors={floorList}
+                alarms={alarmsByFloor}
+                className="absolute right-2 top-2"
+              />
               {model.error && (
                 <p
                   role="alert"
@@ -94,7 +103,7 @@ export function MonitorPage() {
             </>
           )}
         </section>
-        <aside className="flex w-[34%] min-w-64 shrink-0 flex-col border-l border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
+        <aside className="flex flex-col border-t border-slate-200 bg-white lg:w-[34%] lg:min-w-64 lg:shrink-0 lg:border-l lg:border-t-0 dark:border-slate-700 dark:bg-slate-800">
           <AlarmPanel siteId={siteId} />
         </aside>
       </div>
