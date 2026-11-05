@@ -49,6 +49,7 @@ type GizmoMode = 'translate' | 'rotate';
 interface GizmoProps {
   target: Object3D;
   mode: GizmoMode;
+  onGrab(): void;
   onRelease(): void;
 }
 
@@ -72,7 +73,7 @@ function useDisposeWhenDropped(controls: GizmoControls | null) {
 }
 
 // drei's TransformControls disables the default CameraControls while a handle is dragged.
-function Gizmo({ target, mode, onRelease }: GizmoProps) {
+function Gizmo({ target, mode, onGrab, onRelease }: GizmoProps) {
   const [controls, setControls] = useState<GizmoControls | null>(null);
   useDisposeWhenDropped(controls);
   return (
@@ -84,6 +85,7 @@ function Gizmo({ target, mode, onRelease }: GizmoProps) {
       space={mode === 'rotate' ? 'local' : 'world'}
       showZ={mode !== 'rotate'}
       size={0.8}
+      onMouseDown={onGrab}
       onMouseUp={onRelease}
     />
   );
@@ -116,6 +118,8 @@ export function DeviceEditorPage() {
 
   const [tool, setTool] = useState<Tool>('select');
   const [gizmoMode, setGizmoMode] = useState<GizmoMode>('rotate');
+  // While the gizmo moves a camera its viewing range would trail behind, cut for the old pose.
+  const [dragging, setDragging] = useState(false);
   const [editing, setEditing] = useState<Editing | null>(null);
   const [errors, setErrors] = useState<DeviceFormErrors>({});
   const [saved, setSaved] = useState(false);
@@ -317,9 +321,18 @@ export function DeviceEditorPage() {
                   selectedRef={setTarget}
                   floors={floorList}
                   model={model.scene}
+                  hideRangeOf={dragging ? editingKey(editing) : null}
                 />
                 {editing && target && !saving && (
-                  <Gizmo target={target} mode={gizmoMode} onRelease={onGizmoRelease} />
+                  <Gizmo
+                    target={target}
+                    mode={gizmoMode}
+                    onGrab={() => setDragging(true)}
+                    onRelease={() => {
+                      setDragging(false);
+                      onGizmoRelease();
+                    }}
+                  />
                 )}
                 <CoordinateReadout model={model.scene} floors={floorList} />
               </SiteCanvas>

@@ -21,6 +21,8 @@ export interface DeviceMarkersProps {
   floors?: Floor[];
   /** Model whose opaque surfaces stop the cameras' views (walls, ceilings, floors). */
   model?: Object3D | null;
+  /** Camera whose viewing range is hidden, e.g. while it is dragged and the range is stale. */
+  hideRangeOf?: string | null;
 }
 
 const FRUSTUM_COLOR = '#ffd666';
@@ -100,12 +102,21 @@ interface MarkerProps {
   device: Device;
   floor?: FloorRange;
   occluder: Occluder | null;
+  showRange: boolean;
   selected: boolean;
   onSelect?: (id: string) => void;
   objectRef?: Ref<Group>;
 }
 
-function Marker({ device, floor, occluder, selected, onSelect, objectRef }: MarkerProps) {
+function Marker({
+  device,
+  floor,
+  occluder,
+  showRange,
+  selected,
+  onSelect,
+  objectRef,
+}: MarkerProps) {
   const { id, type, yawDeg, pitchDeg } = device;
   const quaternion = useMemo(() => deviceQuaternion(yawDeg, pitchDeg), [yawDeg, pitchDeg]);
   const onClick = onSelect
@@ -125,13 +136,15 @@ function Marker({ device, floor, occluder, selected, onSelect, objectRef }: Mark
             <boxGeometry args={[CAMERA_BOX_M, CAMERA_BOX_M, CAMERA_BOX_M]} />
             <meshStandardMaterial color={color} />
           </mesh>
-          <Frustum
-            device={device}
-            hfovDeg={device.hfovDeg ?? FALLBACK_HFOV_DEG}
-            rangeM={device.rangeM ?? FALLBACK_RANGE_M}
-            floor={floor}
-            occluder={occluder}
-          />
+          {showRange && (
+            <Frustum
+              device={device}
+              hfovDeg={device.hfovDeg ?? FALLBACK_HFOV_DEG}
+              rangeM={device.rangeM ?? FALLBACK_RANGE_M}
+              floor={floor}
+              occluder={occluder}
+            />
+          )}
         </>
       ) : (
         <mesh onClick={onClick}>
@@ -151,11 +164,13 @@ export function DeviceMarkers({
   selectedRef,
   floors,
   model,
+  hideRangeOf = null,
 }: DeviceMarkersProps) {
   const floorId = useViewStore((s) => s.selectedFloorId);
   const shown = floorId ? devices.filter((d) => d.floorId === floorId) : devices;
   const floorById = useMemo(() => new Map((floors ?? []).map((f) => [f.id, f])), [floors]);
   const occluder = useMemo(() => (model ? createOccluder(model) : null), [model]);
+  useEffect(() => () => occluder?.dispose?.(), [occluder]);
   return (
     <>
       {shown.map((d) => (
@@ -164,6 +179,7 @@ export function DeviceMarkers({
           device={d}
           floor={floorById.get(d.floorId)}
           occluder={occluder}
+          showRange={d.id !== hideRangeOf}
           selected={d.id === selectedId}
           onSelect={onSelect}
           objectRef={d.id === selectedId ? selectedRef : undefined}

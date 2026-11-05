@@ -1,16 +1,20 @@
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import {
   BoxGeometry,
   DoubleSide,
   Group,
+  InstancedMesh,
+  Matrix4,
   Mesh,
   MeshBasicMaterial,
+  MeshPhysicalMaterial,
   PlaneGeometry,
   Quaternion,
   Vector3,
   type BufferGeometry,
+  type Material,
 } from 'three';
 import { expect, test } from 'vitest';
-import './bvh';
 import { deviceQuaternion, forwardVector } from './devicePose';
 import { createOccluder, viewshedGeometry, type Occluder } from './viewshed';
 
@@ -33,10 +37,11 @@ test('without an occluder the far surface is the base of the viewing pyramid', (
   expect(Math.max(...far.map((p) => Math.abs(p.y)))).toBeCloseTo(5.625);
 });
 
-test('every ray stops where the occluder blocks it', () => {
+test('every ray stops just short of where the occluder blocks it', () => {
+  // 2 cm short, so the drawn range does not flicker against the wall or floor it reaches.
   const wall: Occluder = { distance: (_o, _d, far) => Math.min(3, far) };
   const { surface } = viewshedGeometry({ hfovDeg: 90, rangeM: 10, ...pose, occluder: wall });
-  farPoints(surface).forEach((p) => expect(p.length()).toBeCloseTo(3));
+  farPoints(surface).forEach((p) => expect(p.length()).toBeCloseTo(2.98));
 });
 
 test('rays are cast in model space from the device position along its facing', () => {
@@ -75,7 +80,7 @@ test('the outline traces the apex edges and the far boundary', () => {
   expect(outline.getAttribute('position').count).toBe((4 + 12) * 2);
 });
 
-function wallAt(z: number, material = new MeshBasicMaterial()): Mesh {
+function wallAt(z: number, material: Material = new MeshBasicMaterial()): Mesh {
   const wall = new Mesh(new BoxGeometry(10, 10, 0.2), material);
   wall.position.set(0, 0, z);
   return wall;
@@ -121,5 +126,42 @@ test('a camera looking straight down sees the floor 3 m below', () => {
     rows: 2,
   });
   // Middle sample of the 5 x 3 grid (vertex 1 + 7) points along the device's -Z.
-  expect(at(surface, 8).z).toBeCloseTo(-3, 3);
+  expect(at(surface, 8).z).toBeCloseTo(-2.98, 3);
+});
+
+test('distances are in model metres under scaled parents', () => {
+  // A model authored in centimetres: the wall sits 500 cm (5 m) away.
+  const root = new Group();
+  root.scale.setScalar(0.01);
+  const wall = new Mesh(new BoxGeometry(1000, 1000, 20), new MeshBasicMaterial());
+  wall.position.z = -500;
+  root.add(wall);
+  expect(createOccluder(root).distance(new Vector3(), new Vector3(0, 0, -1), 20)).toBeCloseTo(4.9);
+});
+
+test('a camera right against a wall does not see through it into the next room', () => {
+  // Front face 3 cm away (the mounting surface), back face at 23 cm, next room's wall at 5 m.
+  const thick = new Mesh(new BoxGeometry(10, 10, 0.2), new MeshBasicMaterial());
+  thick.position.z = -0.13;
+  const occluder = createOccluder(new Group().add(thick, wallAt(-5)));
+  expect(occluder.distance(new Vector3(), new Vector3(0, 0, -1), 20)).toBeCloseTo(0.23);
+});
+
+test('instanced meshes block the view at each instance', () => {
+  const walls = new InstancedMesh(new BoxGeometry(10, 10, 0.2), new MeshBasicMaterial(), 1);
+  walls.setMatrixAt(0, new Matrix4().makeTranslation(0, 0, -6));
+  const occluder = createOccluder(new Group().add(walls));
+  expect(occluder.distance(new Vector3(), new Vector3(0, 0, -1), 20)).toBeCloseTo(5.9);
+});
+
+test('transmissive glass does not block the view, nor do glass parts of a mesh', () => {
+  const transmissive = wallAt(-2, new MeshPhysicalMaterial({ transmission: 1 }));
+  const front = new PlaneGeometry(10, 10).translate(0, 0, -3);
+  const back = new PlaneGeometry(10, 10).translate(0, 0, -5);
+  const mixed = new Mesh(mergeGeometries([front, back], true)!, [
+    new MeshBasicMaterial({ transparent: true, opacity: 0.3 }),
+    new MeshBasicMaterial(),
+  ]);
+  const occluder = createOccluder(new Group().add(transmissive, mixed));
+  expect(occluder.distance(new Vector3(), new Vector3(0, 0, -1), 20)).toBeCloseTo(5);
 });

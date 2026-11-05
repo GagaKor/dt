@@ -1,4 +1,4 @@
-import type { FloorRange } from '@dt/shared';
+import { FLOOR_BASE_SLACK_M, type FloorRange } from '@dt/shared';
 import { Plane, Vector3 } from 'three';
 
 /**
@@ -9,7 +9,8 @@ import { Plane, Vector3 } from 'three';
 export function frustumClipPlanes(floor: FloorRange | undefined): Plane[] | null {
   if (!floor) return null;
   return [
-    new Plane(new Vector3(0, 1, 0), -floor.elevationMin),
+    // Same slack as the floor cut: a suggested elevation may sit just above the real surface.
+    new Plane(new Vector3(0, 1, 0), -(floor.elevationMin - FLOOR_BASE_SLACK_M)),
     new Plane(new Vector3(0, -1, 0), floor.elevationMax),
   ];
 }

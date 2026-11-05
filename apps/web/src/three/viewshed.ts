@@ -1,75 +1,125 @@
 import {
-  Box3,
+  BufferAttribute,
   BufferGeometry,
   DoubleSide,
   Float32BufferAttribute,
   MathUtils,
   Matrix4,
-  Mesh,
   Ray,
   Vector3,
+  type InstancedMesh,
   type Material,
+  type Mesh,
   type Object3D,
   type Quaternion,
 } from 'three';
+import { MeshBVH } from 'three-mesh-bvh';
 
 /** Something rays can be cast against. Distances are in model metres. */
 export interface Occluder {
   /** Distance to the first surface along a model-space ray, up to `far`; null if none. */
   distance(origin: Vector3, direction: Vector3, far: number): number | null;
+  /** Frees the occluder's own geometry. */
+  dispose?(): void;
 }
 
-// Hits closer than this are the surface a device is mounted on (placement keeps it 0.1 m off).
+// Surfaces closer than this are the one a device is mounted on (placement keeps it 0.1 m off);
+// rays start past it, so a camera against a wall still stops at that wall's far side.
 const NEAR_M = 0.05;
+// Rays end this far short of the surface they hit, so the drawn range does not flicker against it.
+const SURFACE_GAP_M = 0.02;
 
-// Glass and other see-through surfaces do not stop a camera's view.
-const seeThrough = (m: Material) => !m.visible || (m.transparent && m.opacity < 0.9);
+/** Glass and other see-through surfaces do not stop a camera's view. */
+function seeThrough(m: Material | undefined): boolean {
+  if (!m || !m.visible) return true;
+  if (m.transparent && m.opacity < 0.9) return true;
+  return ((m as Material & { transmission?: number }).transmission ?? 0) > 0;
+}
 
-interface Target {
+interface Source {
   mesh: Mesh;
-  box: Box3;
-  inverse: Matrix4;
+  /** Index (or vertex) ranges drawn with an opaque material. */
+  ranges: { start: number; count: number }[];
+  matrices: Matrix4[];
+}
+
+function opaqueSource(mesh: Mesh): Source | null {
+  const geometry = mesh.geometry as BufferGeometry;
+  const position = geometry.getAttribute('position');
+  if (!position) return null;
+  const total = geometry.getIndex()?.count ?? position.count;
+  let ranges: Source['ranges'];
+  if (Array.isArray(mesh.material) && geometry.groups.length > 0) {
+    const materials = mesh.material;
+    ranges = geometry.groups
+      .filter((g) => !seeThrough(materials[g.materialIndex ?? 0]))
+      .map((g) => ({ start: g.start, count: Math.min(g.count, total - g.start) }));
+  } else {
+    const material = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
+    ranges = seeThrough(material) ? [] : [{ start: 0, count: total }];
+  }
+  if (ranges.length === 0) return null;
+  const instanced = mesh as InstancedMesh;
+  const matrices = instanced.isInstancedMesh
+    ? Array.from({ length: instanced.count }, (_, i) => {
+        const m = new Matrix4();
+        instanced.getMatrixAt(i, m);
+        return m.premultiply(mesh.matrixWorld);
+      })
+    : [mesh.matrixWorld.clone()];
+  return { mesh, ranges, matrices };
 }
 
 /**
- * Opaque, visible meshes of a model as an occluder. Faces count from both sides, since glTF
- * walls are often single planes. Uses the meshes' BVH (built here if missing).
+ * The visible, opaque surfaces of a model baked into one model-space triangle soup with a single
+ * BVH, so each ray is one query however many meshes the model has. Faces count from both sides,
+ * since glTF walls are often single planes. Glass parts of multi-material meshes are left out.
  */
 export function createOccluder(root: Object3D): Occluder {
   root.updateMatrixWorld(true);
-  const targets: Target[] = [];
+  const sources: Source[] = [];
   root.traverseVisible((o) => {
-    if (!(o instanceof Mesh)) return;
-    const materials: Material[] = Array.isArray(o.material) ? o.material : [o.material];
-    if (materials.every(seeThrough)) return;
-    const geometry = o.geometry as BufferGeometry;
-    if (!geometry.boundsTree) geometry.computeBoundsTree();
-    if (!geometry.boundingBox) geometry.computeBoundingBox();
-    targets.push({
-      mesh: o,
-      box: geometry.boundingBox!.clone().applyMatrix4(o.matrixWorld),
-      inverse: o.matrixWorld.clone().invert(),
-    });
+    if (!(o as Mesh).isMesh) return;
+    const source = opaqueSource(o as Mesh);
+    if (source) sources.push(source);
   });
 
+  let vertices = 0;
+  for (const s of sources)
+    vertices += s.matrices.length * s.ranges.reduce((n, r) => n + r.count, 0);
+  if (vertices < 3) return { distance: () => null };
+
+  const array = new Float32Array(vertices * 3);
+  const v = new Vector3();
+  let k = 0;
+  for (const { mesh, ranges, matrices } of sources) {
+    const geometry = mesh.geometry as BufferGeometry;
+    const position = geometry.getAttribute('position');
+    const index = geometry.getIndex();
+    for (const matrix of matrices) {
+      for (const { start, count } of ranges) {
+        for (let i = start; i < start + count; i++) {
+          v.fromBufferAttribute(position, index ? index.getX(i) : i).applyMatrix4(matrix);
+          array[k++] = v.x;
+          array[k++] = v.y;
+          array[k++] = v.z;
+        }
+      }
+    }
+  }
+  const soup = new BufferGeometry();
+  soup.setAttribute('position', new BufferAttribute(array, 3));
+  const bvh = new MeshBVH(soup);
+
   const ray = new Ray();
-  const local = new Ray();
-  const point = new Vector3();
   return {
     distance(origin, direction, far) {
+      if (far <= NEAR_M) return null;
       ray.set(origin, direction);
-      let best: number | null = null;
-      for (const t of targets) {
-        if (!ray.intersectsBox(t.box)) continue;
-        local.copy(ray).applyMatrix4(t.inverse);
-        const hit = t.mesh.geometry.boundsTree!.raycastFirst(local, DoubleSide);
-        if (!hit) continue;
-        const d = point.copy(hit.point).applyMatrix4(t.mesh.matrixWorld).distanceTo(origin);
-        if (d < NEAR_M || d > far) continue;
-        if (best === null || d < best) best = d;
-      }
-      return best;
+      const hit = bvh.raycastFirst(ray, DoubleSide, NEAR_M, far);
+      return hit ? hit.distance : null;
     },
+    dispose: () => soup.dispose(),
   };
 }
 
@@ -122,7 +172,8 @@ export function viewshedGeometry({
       const max = local.length();
       local.divideScalar(max);
       world.copy(local).applyQuaternion(quaternion);
-      const d = occluder?.distance(origin, world, max) ?? max;
+      const hit = occluder?.distance(origin, world, max) ?? null;
+      const d = hit === null ? max : Math.max(0, hit - SURFACE_GAP_M);
       positions.push(local.x * d, local.y * d, local.z * d);
     }
   }
