@@ -1,7 +1,7 @@
 import { Logger, NodeIO } from '@gltf-transform/core';
 import { ALL_EXTENSIONS, KHRDracoMeshCompression } from '@gltf-transform/extensions';
 import { dedup, getBounds, meshopt, weld } from '@gltf-transform/functions';
-import type { FloorRange, ModelWarning } from '@dt/shared';
+import type { FloorSuggestion, ModelWarning } from '@dt/shared';
 import draco3d from 'draco3dgltf';
 import { validateBytes } from 'gltf-validator';
 import { MeshoptDecoder, MeshoptEncoder } from 'meshoptimizer';
@@ -22,7 +22,7 @@ export class ModelError extends Error {
 
 export interface ProcessedModel {
   glb: Uint8Array;
-  floorSuggestion: FloorRange[];
+  floorSuggestion: FloorSuggestion[];
   warnings: ModelWarning[];
   bounds: { min: [number, number, number]; max: [number, number, number] };
 }
@@ -99,7 +99,7 @@ export async function processModel(input: Uint8Array): Promise<ProcessedModel> {
   if (!bounds || !bounds.min.every(Number.isFinite) || !bounds.max.every(Number.isFinite)) {
     throw new ModelError('invalid_gltf', 'The model contains no visible geometry.');
   }
-  const floorSuggestion = suggestFloors(doc, { minY: bounds.min[1], maxY: bounds.max[1] });
+  const floorSuggestion = suggestFloors(doc, bounds);
 
   for (const ext of doc.getRoot().listExtensionsUsed()) {
     if (ext.extensionName === KHRDracoMeshCompression.EXTENSION_NAME) ext.dispose();
