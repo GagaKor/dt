@@ -3,6 +3,7 @@ import { Navigate, Outlet, Route, Routes, useParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useSites } from './api/queries';
 import { AppShell } from './components/AppShell';
+import { SettingsNav } from './components/SettingsNav';
 import { RequireAuth } from './components/RequireAuth';
 import { LoginPage } from './pages/LoginPage';
 import { KeysPage } from './pages/settings/KeysPage';
@@ -23,6 +24,20 @@ const SiteDetailPage = lazy(() =>
 const DeviceEditorPage = lazy(() =>
   import('./pages/settings/DeviceEditorPage').then((m) => ({ default: m.DeviceEditorPage })),
 );
+// Bundles the integration guides, so it loads only when opened.
+const IntegrationPage = lazy(() =>
+  import('./pages/settings/IntegrationPage').then((m) => ({ default: m.IntegrationPage })),
+);
+
+/** Settings pages that are not tied to one site share a tab bar. */
+function SettingsLayout() {
+  return (
+    <>
+      <SettingsNav />
+      <Outlet />
+    </>
+  );
+}
 
 function ShellLayout() {
   const { siteId } = useParams();
@@ -72,7 +87,18 @@ export function App() {
             </Suspense>
           }
         />
-        <Route path="/settings/sites" element={<SitesPage />} />
+        <Route element={<SettingsLayout />}>
+          <Route path="/settings/sites" element={<SitesPage />} />
+          <Route path="/settings/keys" element={<KeysPage />} />
+          <Route
+            path="/settings/integration"
+            element={
+              <Suspense fallback={<LoadingFallback />}>
+                <IntegrationPage />
+              </Suspense>
+            }
+          />
+        </Route>
         <Route
           path="/settings/sites/:siteId"
           element={
@@ -89,7 +115,6 @@ export function App() {
             </Suspense>
           }
         />
-        <Route path="/settings/keys" element={<KeysPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

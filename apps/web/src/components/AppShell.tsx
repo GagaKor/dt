@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { NavLink, useNavigate } from 'react-router';
+import { NavLink, useLocation, useNavigate } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { apiFetch } from '../api/client';
@@ -24,6 +24,7 @@ export function AppShell({ siteId, children }: AppShellProps) {
   const { t, i18n } = useTranslation();
   // Every site's unacknowledged alarms, not only the watched one.
   const badgeCount = useRealtimeStore((s) => s.sites.reduce((n, x) => n + x.unacked, 0));
+  const { pathname } = useLocation();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const sites = useSites();
@@ -74,7 +75,13 @@ export function AppShell({ siteId, children }: AppShellProps) {
           <NavLink to={current ? `/sites/${current}/dashboard` : '/'} className={tabClass}>
             {t('nav.dashboard')}
           </NavLink>
-          <NavLink to="/settings/sites" className={tabClass}>
+          <NavLink
+            to="/settings/sites"
+            // Every settings page (sites, keys, integration docs) belongs to this tab.
+            className={({ isActive }) =>
+              tabClass({ isActive: isActive || pathname.startsWith('/settings') })
+            }
+          >
             {t('nav.settings')}
           </NavLink>
         </nav>

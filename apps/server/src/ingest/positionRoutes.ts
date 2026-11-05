@@ -11,7 +11,11 @@ export async function registerPositionRoutes(app: FastifyInstance, clock: () => 
     {
       bodyLimit: 1024 * 1024,
       onRequest: app.requireIntegrationKey,
-      schema: { body: PositionBatchSchema, response: { 202: z.object({ accepted: z.number() }) } },
+      schema: {
+        security: [{ integrationKey: [] }],
+        body: PositionBatchSchema,
+        response: { 202: z.object({ accepted: z.number() }) },
+      },
     },
     async (req, reply) => {
       const key = req.integrationKey;

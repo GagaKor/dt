@@ -18,6 +18,8 @@ export function FloorSelector({ floors, className = '' }: FloorSelectorProps) {
   const { t } = useTranslation();
   const selectedId = useViewStore((s) => s.selectedFloorId);
   const setSelectedFloor = useViewStore((s) => s.setSelectedFloor);
+  const showOthers = useViewStore((s) => s.showOtherFloors);
+  const setShowOthers = useViewStore((s) => s.setShowOtherFloors);
   const current = floors.some((f) => f.id === selectedId) ? selectedId : null;
   const topDown = [...floors].sort((a, b) => b.elevationMin - a.elevationMin);
   const options = [
@@ -43,6 +45,17 @@ export function FloorSelector({ floors, className = '' }: FloorSelectorProps) {
           {o.label}
         </button>
       ))}
+      {current !== null && (
+        <label className="mt-1 flex items-center gap-1.5 border-t border-slate-200 px-2 pt-1.5 text-xs dark:border-slate-600">
+          <input
+            type="checkbox"
+            data-testid="floor-show-others"
+            checked={showOthers}
+            onChange={(e) => setShowOthers(e.target.checked)}
+          />
+          {t('viewer.showOtherFloors')}
+        </label>
+      )}
     </div>
   );
 }

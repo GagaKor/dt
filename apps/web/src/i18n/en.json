@@ -15,6 +15,7 @@
     "monitor": "Monitor",
     "dashboard": "Dashboard",
     "settings": "Settings",
+    "settingsSections": "Settings sections",
     "site": "Site",
     "selectSite": "Select a site",
     "alarms": "Unacknowledged alarms",
@@ -27,11 +28,13 @@
     "sites": "Sites",
     "siteDetail": "Site settings",
     "devices": "Devices",
-    "keys": "Integration keys"
+    "keys": "Integration keys",
+    "docs": "Integration docs"
   },
   "viewer": {
     "floors": "Floors",
     "allFloors": "All",
+    "showOtherFloors": "Show other floors",
     "coordinates": "{{x}}, {{y}} (m) · {{floor}}",
     "coordinatesNoFloor": "{{x}}, {{y}} (m)"
   },
@@ -108,6 +111,25 @@
     "revoke": "Revoke",
     "revoked": "Revoked",
     "revokeConfirm": "Revoke this key?"
+  },
+  "docs": {
+    "intro": "External systems send events and positions to this server over HTTP. Each system needs its own integration key.",
+    "keysLink": "Manage integration keys",
+    "endpoints": "Endpoints",
+    "header": "Every request carries the key in this header:",
+    "keyPlaceholder": "<integration key>",
+    "swaggerTitle": "API reference (Swagger)",
+    "swaggerDesc": "Browse every endpoint with its request and response schema, and try requests in the browser.",
+    "swaggerOpen": "Open Swagger",
+    "openapiTitle": "OpenAPI specification (JSON)",
+    "openapiDesc": "Import into Postman, Insomnia or a client code generator.",
+    "openapiDownload": "Download OpenAPI JSON",
+    "guideTitle": "Integration guide (Markdown, Korean)",
+    "guideDesc": "Message formats, coordinates, severity, alarm grouping, object fading, error codes and a checklist.",
+    "guideDownload": "Download integration guide",
+    "modelTitle": "3D model specification (Markdown, Korean)",
+    "modelDesc": "What a delivered 3D model must meet: file format, units, axes, floors and size.",
+    "modelDownload": "Download model specification"
   },
   "devices": {
     "manage": "Place devices",

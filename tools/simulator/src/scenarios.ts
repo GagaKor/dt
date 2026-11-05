@@ -11,6 +11,75 @@ export interface SimDevice {
   id: string;
   floor: number;
   type: 'camera' | 'sensor';
+  /** Plan position (m). With it, detections stay where the device can sense them. */
+  x?: number;
+  y?: number;
+  /** Camera view: facing (from plan +y toward +x), horizontal field of view and range. */
+  yawDeg?: number;
+  hfovDeg?: number;
+  rangeM?: number;
+}
+
+/** Picks a plan point inside an area from a random source. Areas are convex, so straight walks between picks stay inside. */
+export type AreaSampler = (rnd: () => number) => { x: number; y: number };
+
+// Share of a camera's field of view and range people walk in, so they are clearly inside it.
+const VIEW_ANGLE_SHARE = 0.8;
+const VIEW_RANGE_SHARE = 0.9;
+// Closer than this a ceiling camera tilted down does not see the floor.
+const VIEW_MIN_M = 2;
+const SENSOR_RADIUS_M = 3;
+const SAMPLE_TRIES = 50;
+
+const inBounds = (b: Bounds, p: { x: number; y: number }) =>
+  p.x >= b.x[0] && p.x <= b.x[1] && p.y >= b.y[0] && p.y <= b.y[1];
+
+function boundsSampler(b: Bounds): AreaSampler {
+  return (rnd) => ({
+    x: b.x[0] + rnd() * (b.x[1] - b.x[0]),
+    y: b.y[0] + rnd() * (b.y[1] - b.y[0]),
+  });
+}
+
+/** Rejection-samples `pick` inside the bounds; falls back to the device position. */
+function within(b: Bounds, at: { x: number; y: number }, pick: AreaSampler): AreaSampler {
+  return (rnd) => {
+    for (let i = 0; i < SAMPLE_TRIES; i++) {
+      const p = pick(rnd);
+      if (inBounds(b, p)) return p;
+    }
+    return {
+      x: Math.min(b.x[1], Math.max(b.x[0], at.x)),
+      y: Math.min(b.y[1], Math.max(b.y[0], at.y)),
+    };
+  };
+}
+
+/**
+ * Where a device detects things: in front of a camera within its view, around a sensor, or
+ * anywhere in the bounds for devices without a known position (older configs).
+ */
+export function coverage(device: SimDevice, bounds: Bounds): AreaSampler {
+  const { x, y } = device;
+  if (x === undefined || y === undefined) return boundsSampler(bounds);
+  const at = { x, y };
+  const { yawDeg, hfovDeg, rangeM } = device;
+  if (device.type === 'camera' && yawDeg !== undefined && hfovDeg && rangeM) {
+    const half = ((hfovDeg / 2) * VIEW_ANGLE_SHARE * Math.PI) / 180;
+    const yaw = (yawDeg * Math.PI) / 180;
+    const far = Math.max(VIEW_MIN_M, rangeM * VIEW_RANGE_SHARE);
+    return within(bounds, at, (rnd) => {
+      const a = yaw + (2 * rnd() - 1) * half;
+      // Uniform over the sector's area rather than bunched near the camera.
+      const r = Math.sqrt(VIEW_MIN_M ** 2 + rnd() * (far ** 2 - VIEW_MIN_M ** 2));
+      return { x: x + r * Math.sin(a), y: y + r * Math.cos(a) };
+    });
+  }
+  return within(bounds, at, (rnd) => {
+    const a = rnd() * 2 * Math.PI;
+    const r = SENSOR_RADIUS_M * Math.sqrt(rnd());
+    return { x: x + r * Math.cos(a), y: y + r * Math.sin(a) };
+  });
 }
 
 export interface ScenarioState {
@@ -62,15 +131,14 @@ function mulberry32(seed: number): () => number {
 const WALK_SPEED_MPS = 1.2;
 const WAYPOINTS = 6;
 
+/** A looping walk through random waypoints of an area (a rectangle or a device's coverage). */
 export function walkerPath(
   seed: number,
-  bounds: Bounds = DEFAULT_BOUNDS,
+  area: Bounds | AreaSampler = DEFAULT_BOUNDS,
 ): (tMs: number) => { x: number; y: number } {
   const rnd = mulberry32(seed * 7919 + 1);
-  const pts = Array.from({ length: WAYPOINTS }, () => ({
-    x: bounds.x[0] + rnd() * (bounds.x[1] - bounds.x[0]),
-    y: bounds.y[0] + rnd() * (bounds.y[1] - bounds.y[0]),
-  }));
+  const sample = typeof area === 'function' ? area : boundsSampler(area);
+  const pts = Array.from({ length: WAYPOINTS }, () => sample(rnd));
   const legs = pts.map((p, i) => {
     const q = pts[(i + 1) % pts.length]!;
     return { from: p, to: q, len: Math.max(Math.hypot(q.x - p.x, q.y - p.y), 1e-6) };
@@ -95,10 +163,10 @@ export function walkerPath(
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
-function pick(state: ScenarioState, floor: number, type: SimDevice['type']): SimDevice {
-  const d = state.devices.find((x) => x.floor === floor && x.type === type);
-  if (!d) throw new Error(`no ${type} device on floor ${floor}`);
-  return d;
+function ofType(state: ScenarioState, floor: number, type: SimDevice['type']): SimDevice[] {
+  const list = state.devices.filter((x) => x.floor === floor && x.type === type);
+  if (list.length === 0) throw new Error(`no ${type} device on floor ${floor}`);
+  return list;
 }
 
 export function scenarioTick(
@@ -109,20 +177,23 @@ export function scenarioTick(
   const tick = Math.floor(tMs / 1000);
   const floors = [...new Set(state.devices.map((d) => d.floor))].sort((a, b) => a - b);
   const positions: PositionMessage[] = [];
-  const people: { id: string; floor: number; x: number; y: number }[] = [];
+  const people: { id: string; floor: number; deviceId: string; x: number; y: number }[] = [];
 
   for (let i = 0; i < state.people; i++) {
+    // Each person is seen by one camera of their floor and walks only inside its view.
+    const floor = floors[i % floors.length]!;
+    const cameras = ofType(state, floor, 'camera');
+    const camera = cameras[Math.floor(i / floors.length) % cameras.length]!;
     let walk = state.walkers.get(i);
     if (!walk) {
-      walk = walkerPath(i + 1, state.bounds);
+      walk = walkerPath(i + 1, coverage(camera, state.bounds));
       state.walkers.set(i, walk);
     }
-    const floor = floors[i % floors.length]!;
     const p = walk(tMs);
-    const person = { id: `p-${i + 1}`, floor, x: round2(p.x), y: round2(p.y) };
+    const person = { id: `p-${i + 1}`, floor, deviceId: camera.id, x: round2(p.x), y: round2(p.y) };
     people.push(person);
     positions.push({
-      deviceId: pick(state, floor, 'camera').id,
+      deviceId: camera.id,
       objectId: person.id,
       objectType: 'person',
       x: person.x,
@@ -135,9 +206,13 @@ export function scenarioTick(
   const every = (ms: number) => tMs > 0 && tMs % ms === 0;
 
   if (every(5000)) {
-    const p = walkerPath(10_000, state.bounds)(tMs);
+    // Something unidentified near one of the sensors, rotating over floors and sensors.
+    const round = tick / 5;
+    const sensors = ofType(state, floors[round % floors.length]!, 'sensor');
+    const sensor = sensors[Math.floor(round / floors.length) % sensors.length]!;
+    const p = walkerPath(10_000, coverage(sensor, state.bounds))(tMs);
     positions.push({
-      deviceId: pick(state, floors[(tick / 5) % floors.length]!, 'sensor').id,
+      deviceId: sensor.id,
       x: round2(p.x),
       y: round2(p.y),
       measuredAt: iso,
@@ -147,7 +222,7 @@ export function scenarioTick(
   if (every(15_000) && people.length > 0) {
     const who = people[(tick / 15) % people.length]!;
     events.push({
-      deviceId: pick(state, who.floor, 'camera').id,
+      deviceId: who.deviceId,
       eventType: 'intrusion',
       occurredAt: iso,
       severity: 'critical',
@@ -161,7 +236,7 @@ export function scenarioTick(
 
   if (every(20_000)) {
     events.push({
-      deviceId: pick(state, floors[(tick / 20) % floors.length]!, 'sensor').id,
+      deviceId: ofType(state, floors[(tick / 20) % floors.length]!, 'sensor')[0]!.id,
       eventType: 'smoke',
       occurredAt: iso,
       severity: 'major',

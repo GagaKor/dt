@@ -7,6 +7,9 @@ e2e/artifacts
 test-results
 .env
 .sim.json
-docs
+# The web app bundles the integration guide and model spec for download.
+docs/*
+!docs/integration.md
+!docs/model-spec.md
 backups
 deploy-logs

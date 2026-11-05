@@ -90,6 +90,21 @@ test('success criteria: model to acknowledged alarm on the dashboard', async ({
     await expect(plain).toHaveCount(0);
   });
 
+  await test.step('integration docs link to Swagger and the OpenAPI document', async () => {
+    await page.getByRole('link', { name: 'Integration docs' }).click();
+    await expect(page.getByRole('link', { name: 'Open Swagger' })).toHaveAttribute(
+      'href',
+      '/api/docs',
+    );
+    const swagger = await request.get('/api/docs');
+    expect(swagger.status()).toBe(200);
+    expect(await swagger.text()).toContain('swagger');
+    const spec = await request.get('/api/openapi.json');
+    expect(Object.keys((await spec.json()).paths)).toEqual(
+      expect.arrayContaining(['/api/ingest/events', '/api/ingest/positions']),
+    );
+  });
+
   await test.step('first event raises an alarm', async () => {
     await page.getByRole('link', { name: /monitor/i }).click();
     await expect(page.getByTestId('realtime-status')).toHaveAttribute('data-state', 'open');
