@@ -8,6 +8,7 @@ import {
 import draco3d from 'draco3dgltf';
 import { MeshoptDecoder } from 'meshoptimizer';
 import { expect, test, vi } from 'vitest';
+import { suggestFloors } from '../src/models/floorSuggestion.js';
 import { ModelError, processModel } from '../src/models/processModel.js';
 import { repoPath } from './helpers.js';
 
@@ -171,4 +172,133 @@ test('processing a model prints nothing below warnings to the console', async ()
   } finally {
     for (const spy of spies) spy.mockRestore();
   }
+});
+
+type V3 = [number, number, number];
+
+/** Appends the planar quad a-b-c-d as two triangles, wound so its normal points along `dir`. */
+function quad(out: number[], dir: V3, a: V3, b: V3, c: V3, d: V3): void {
+  const u = [b[0] - a[0], b[1] - a[1], b[2] - a[2]] as const;
+  const v = [c[0] - a[0], c[1] - a[1], c[2] - a[2]] as const;
+  const n = [u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]];
+  const flip = n[0]! * dir[0] + n[1]! * dir[1] + n[2]! * dir[2] < 0;
+  for (const p of flip ? [a, c, b, a, d, c] : [a, b, c, a, c, d]) out.push(...p);
+}
+
+/** Closed box between corners `lo` and `hi`, every face wound outward. */
+function box(out: number[], lo: V3, hi: V3): void {
+  const corner = (i: number): V3 => [
+    i & 1 ? hi[0] : lo[0],
+    i & 2 ? hi[1] : lo[1],
+    i & 4 ? hi[2] : lo[2],
+  ];
+  const faces = [
+    [2, 3, 7, 6],
+    [0, 1, 5, 4],
+    [0, 1, 3, 2],
+    [4, 5, 7, 6],
+    [0, 4, 6, 2],
+    [1, 5, 7, 3],
+  ];
+  for (const face of faces) {
+    const [a, b, c, d] = face.map(corner) as [V3, V3, V3, V3];
+    // a and c are opposite corners, so this points from the box centre to the face centre.
+    const outward: V3 = [
+      a[0] + c[0] - lo[0] - hi[0],
+      a[1] + c[1] - lo[1] - hi[1],
+      a[2] + c[2] - lo[2] - hi[2],
+    ];
+    quad(out, outward, a, b, c, d);
+  }
+}
+
+/** Hall walls of the given height around [x0, x1] x [z0, z1], 0.2 m thick, inside the outline. */
+function walls(out: number[], x0: number, x1: number, z0: number, z1: number, h: number): void {
+  const t = 0.2;
+  box(out, [x0, 0, z0], [x1, h, z0 + t]);
+  box(out, [x0, 0, z1 - t], [x1, h, z1]);
+  box(out, [x0, 0, z0 + t], [x0 + t, h, z1 - t]);
+  box(out, [x1 - t, 0, z0 + t], [x1, h, z1 - t]);
+}
+
+/**
+ * Gable roof over [x0, x1] x [z0, z1], ridge along X, built from narrow sheets the way real roofs
+ * are, so the slope never collects enough upward area in one height bin to read as a level.
+ */
+function gableRoof(
+  out: number[],
+  x0: number,
+  x1: number,
+  z0: number,
+  z1: number,
+  eave: number,
+  ridge: number,
+): void {
+  const zm = (z0 + z1) / 2;
+  const sheets = 12;
+  for (const ze of [z0, z1]) {
+    for (let k = 0; k < sheets; k++) {
+      const za = ze + ((zm - ze) * k) / sheets;
+      const zb = ze + ((zm - ze) * (k + 1)) / sheets;
+      const ya = eave + ((ridge - eave) * k) / sheets;
+      const yb = eave + ((ridge - eave) * (k + 1)) / sheets;
+      quad(out, [0, 1, 0], [x0, ya, za], [x1, ya, za], [x1, yb, zb], [x0, yb, zb]);
+    }
+  }
+}
+
+function docOf(positions: number[]): Document {
+  const doc = new Document();
+  const buffer = doc.createBuffer();
+  const prim = doc
+    .createPrimitive()
+    .setAttribute(
+      'POSITION',
+      doc.createAccessor().setType('VEC3').setArray(new Float32Array(positions)).setBuffer(buffer),
+    );
+  const node = doc.createNode('building').setMesh(doc.createMesh('building').addPrimitive(prim));
+  doc.createScene('s').addChild(node);
+  return doc;
+}
+
+const range = (min: number, max: number, roof?: true) => ({
+  elevationMin: expect.closeTo(min, 1),
+  elevationMax: expect.closeTo(max, 1),
+  ...(roof ? { roof } : {}),
+});
+
+test('splits a gable roof off the floor above a mezzanine at the eaves', () => {
+  const t: number[] = [];
+  box(t, [-30, -0.2, -20], [30, 0, 20]);
+  box(t, [-30, 4.8, -20], [-10, 5, 20]);
+  walls(t, -30, 30, -20, 20, 10);
+  gableRoof(t, -30, 30, -20, 20, 10, 12);
+  expect(suggestFloors(docOf(t))).toEqual([range(0, 5), range(5, 10), range(10, 12, true)]);
+});
+
+test('leaves a flat-roof building alone when the top range ends below the model top', () => {
+  const t: number[] = [];
+  for (const y of [0, 4, 8, 12]) box(t, [-15, y - 0.2, -10], [15, y, 10]);
+  walls(t, -15, 15, -10, 10, 12);
+  for (const x of [-8, 0, 8]) box(t, [x, 12, -2], [x + 2, 13.5, 0]);
+  expect(suggestFloors(docOf(t))).toEqual([range(0, 4), range(4, 8), range(8, 12)]);
+});
+
+test('does not split a roof terrace for a small penthouse', () => {
+  const t: number[] = [];
+  for (const y of [0, 4, 8]) box(t, [-15, y - 0.2, -10], [15, y, 10]);
+  walls(t, -15, 15, -10, 10, 9);
+  box(t, [-4, 8, -5], [4, 11.5, 5]);
+  box(t, [-1, 11.5, -1], [1, 12.7, 1]);
+  expect(suggestFloors(docOf(t))).toEqual([range(0, 4), range(4, 8), range(8, 12.7)]);
+});
+
+test('splits a single-level hall at the eaves despite a low canopy and a lower yard', () => {
+  const t: number[] = [];
+  box(t, [-30, -0.2, -20], [30, 0, 20]);
+  box(t, [-30, -1.4, 20], [30, -1.2, 40]);
+  box(t, [-20, 4.2, 20], [20, 4.5, 24]);
+  walls(t, -30, 30, -20, 20, 10);
+  gableRoof(t, -30, 30, -20, 20, 10, 12);
+  expect(suggestFloors(docOf(t))).toEqual([range(-1.4, 10), range(10, 12, true)]);
 });

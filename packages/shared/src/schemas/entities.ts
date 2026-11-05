@@ -15,6 +15,10 @@ export type Site = z.infer<typeof SiteSchema>;
 export const FloorRangeSchema = z.object({ elevationMin: z.number(), elevationMax: z.number() });
 export type FloorRange = z.infer<typeof FloorRangeSchema>;
 
+/** A suggested floor range; `roof` marks the range split off for a non-flat roof. */
+export const FloorSuggestionSchema = FloorRangeSchema.extend({ roof: z.boolean().optional() });
+export type FloorSuggestion = z.infer<typeof FloorSuggestionSchema>;
+
 export const FloorSchema = FloorRangeSchema.extend({
   id: z.string(),
   siteId: z.string(),
@@ -98,7 +102,7 @@ export type ModelWarning = z.infer<typeof ModelWarningSchema>;
 
 export const ModelUploadResultSchema = z.object({
   site: SiteSchema,
-  floorSuggestion: z.array(FloorRangeSchema),
+  floorSuggestion: z.array(FloorSuggestionSchema),
   warnings: z.array(ModelWarningSchema),
 });
 export type ModelUploadResult = z.infer<typeof ModelUploadResultSchema>;
