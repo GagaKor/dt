@@ -59,3 +59,15 @@ test('empty secrets name the variable', () => {
   expect(() => loadConfig({ ...base, ADMIN_PASSWORD: '' })).toThrow(/ADMIN_PASSWORD/);
   expect(() => loadConfig({ ...base, SESSION_SECRET: '' })).toThrow(/SESSION_SECRET/);
 });
+
+test('TRUST_PROXY defaults to false and accepts a boolean or an address list', () => {
+  expect(loadConfig(base).TRUST_PROXY).toBe(false);
+  expect(loadConfig({ ...base, TRUST_PROXY: '' }).TRUST_PROXY).toBe(false);
+  expect(loadConfig({ ...base, TRUST_PROXY: 'true' }).TRUST_PROXY).toBe(true);
+  expect(loadConfig({ ...base, TRUST_PROXY: 'false' }).TRUST_PROXY).toBe(false);
+  expect(loadConfig({ ...base, TRUST_PROXY: '1' }).TRUST_PROXY).toBe(true);
+  expect(loadConfig({ ...base, TRUST_PROXY: '0' }).TRUST_PROXY).toBe(false);
+  expect(loadConfig({ ...base, TRUST_PROXY: '127.0.0.1, 172.16.0.0/12' }).TRUST_PROXY).toBe(
+    '127.0.0.1,172.16.0.0/12',
+  );
+});

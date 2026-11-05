@@ -17,6 +17,22 @@ const secret = (minLength: number, hint: string) =>
     .min(minLength)
     .refine((v) => !PLACEHOLDERS.has(v), `is a public placeholder from .env.example; ${hint}`);
 
+// Fastify `trustProxy`: true, false, or comma-separated proxy addresses/CIDRs.
+// Only set it when a reverse proxy is the sole way to reach the app, or X-Forwarded-* is spoofable.
+const trustProxy = z
+  .string()
+  .transform((v): boolean | string => {
+    const s = v.trim();
+    if (s === '' || s === 'false' || s === '0') return false;
+    if (s === 'true' || s === '1') return true;
+    return s
+      .split(',')
+      .map((p) => p.trim())
+      .filter(Boolean)
+      .join(',');
+  })
+  .default(false);
+
 const schema = z
   .object({
     PORT: z.coerce.number().int().min(1).max(65535).default(8080),
@@ -39,6 +55,7 @@ const schema = z
     MIGRATIONS_DIR: optional(z.string()),
     WEB_DIST_DIR: optional(z.string()),
     LOG_LEVEL: z.string().default('info'),
+    TRUST_PROXY: trustProxy,
   })
   .superRefine((c, ctx) => {
     if (c.DB_DRIVER === 'pg' && !c.DATABASE_URL)

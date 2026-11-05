@@ -105,6 +105,58 @@ describe('admin auth', () => {
     });
   });
 
+  describe('Secure flag', () => {
+    const forwardedHttps = { 'x-forwarded-proto': 'https' };
+    const sessionCookie = (res: { cookies: { name: string; secure?: boolean }[] }) =>
+      res.cookies.find((x) => x.name === 'dt_session');
+    const loginVia = (app: TestApp, headers: Record<string, string> = {}) =>
+      app.app.inject({
+        method: 'POST',
+        url: '/api/auth/login',
+        headers,
+        payload: { username: 'admin', password: 'test-password' },
+      });
+
+    it('is not set over plain HTTP', async () => {
+      const res = await loginVia(t);
+      expect(sessionCookie(res)?.secure).toBeFalsy();
+    });
+
+    it('ignores X-Forwarded-Proto when TRUST_PROXY is not set', async () => {
+      const res = await loginVia(t, forwardedHttps);
+      expect(sessionCookie(res)?.secure).toBeFalsy();
+    });
+
+    it('is set on login and logout behind a trusted proxy that forwards HTTPS', async () => {
+      const proxied = await createTestApp({ config: { TRUST_PROXY: true } });
+      try {
+        const res = await loginVia(proxied, forwardedHttps);
+        expect(res.statusCode).toBe(204);
+        expect(sessionCookie(res)?.secure).toBe(true);
+
+        const out = await proxied.app.inject({
+          method: 'POST',
+          url: '/api/auth/logout',
+          headers: forwardedHttps,
+        });
+        expect(sessionCookie(out)?.secure).toBe(true);
+      } finally {
+        await proxied.close();
+      }
+    });
+
+    it('ignores X-Forwarded-Proto from an address outside TRUST_PROXY', async () => {
+      // inject() connects from 127.0.0.1, which this list does not trust.
+      const other = await createTestApp({ config: { TRUST_PROXY: '10.0.0.1' } });
+      try {
+        const res = await loginVia(other, forwardedHttps);
+        expect(sessionCookie(res)?.secure).toBeFalsy();
+      } finally {
+        await other.close();
+      }
+    });
+  });
+
   describe('cookie helpers', () => {
     const secret = 'test-session-secret-0123456789abcdef';
     const sign = (v: string, sec = secret) => cookie.sign(v, sec);
