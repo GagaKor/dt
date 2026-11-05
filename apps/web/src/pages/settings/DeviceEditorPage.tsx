@@ -316,6 +316,7 @@ export function DeviceEditorPage() {
                   onSelect={placing ? undefined : onMarkerSelect}
                   selectedRef={setTarget}
                   floors={floorList}
+                  model={model.scene}
                 />
                 {editing && target && !saving && (
                   <Gizmo target={target} mode={gizmoMode} onRelease={onGizmoRelease} />
